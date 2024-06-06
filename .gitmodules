@@ -1,0 +1,3 @@
+[submodule "GraphLang"]
+	path = GraphLang
+	url = https://github.com/LubomirJagos42/GraphLang
