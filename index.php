@@ -20,6 +20,14 @@ include_once("application/ControllerDefault.php");
 	}else if($q == "loadNodesFromServer"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doLoadNodesFromServer();	
+	}else if($q == "uploadNodesToServer"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doUploadNodesToServer();	
+	}else if($q == "experimentGetOrderedNodes"){
+		$controller->doExperimentGetOrderedNodes();
+	}else if($q == "experimentGetJavascriptForNodes"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doExperimentGetJavascriptForNodes();
 	}else{
 		$controller->doNotFound();			
 	}

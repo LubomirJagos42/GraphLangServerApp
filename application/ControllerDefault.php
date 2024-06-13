@@ -63,6 +63,45 @@ class ControllerDefault{
 
 		echo $outputStr;
 	}
+
+	function doUploadNodesToServer(){
+		$outputStr = "";
+		
+		$nodeName = $_POST['nodeName'];
+		$nodeContent = $_POST['nodeContent'];
+		$nodeOwner = $_POST['nodeOwner'];
+		$projectId = $_POST['projectId'];
+		$nodeClassParent = $_POST['nodeClassParent'];
+		$nodeDir = $_POST['nodeDir'];
+		$nodeLanguage = $_POST['nodeLanguage'];
+		$nodeDisplayName = $_POST['nodeDisplayName'];
+		
+		$outputStr .= $this->modelSchematicNodes->saveNode($nodeOwner, $projectId, $nodeName, $nodeContent, $nodeClassParent, $nodeLanguage, $nodeDir, $nodeDisplayName);
+		
+		echo($outputStr);
+	}
 	
+	function doExperimentGetOrderedNodes(){
+		$orderedNodesArray = $this->modelSchematicNodes->getOrderedNodesForProject(2, 47);
+		
+		$outputStr = "";
+		$outputStr .= "<table>\n";
+		for($k=0; $k < count($orderedNodesArray); $k++){
+			$outputStr .= "<tr>";
+			$outputStr .= "<td>". $orderedNodesArray[$k]['node_directory'] ."</td>\n";
+			$outputStr .= "<td>". $orderedNodesArray[$k]['node_display_name'] ."</td>\n";
+			$outputStr .= "<td>". $orderedNodesArray[$k]['node_class_name'] ."</td>\n";
+			$outputStr .= "<td>". $orderedNodesArray[$k]['node_class_parent'] ."</td>\n";
+			$outputStr .= "<td>". $orderedNodesArray[$k]['internal_id'] ."</td>\n";
+			$outputStr .= "</tr>\n";
+		}
+		$outputStr .= "</table>\n";
+		echo($outputStr);
+	}
+	
+	function doExperimentGetJavascriptForNodes(){
+		$orderedNodesArray = $this->modelSchematicNodes->getJavascriptForNodes(2, 47);
+		
+	}
 }
 ?>
