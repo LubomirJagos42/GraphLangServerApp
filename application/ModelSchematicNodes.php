@@ -11,10 +11,7 @@ class ModelSchematicNodes{
 		$this->modelLogin = new ModelLogin($db_conn);
 	}
 	
-	function getProjectNodesClassNames(){
-		$currUserId = $this->modelLogin->getCurrentUserId();
-		$currUserProjectId = $this->modelLogin->getCurrentUserProjectId();
-		
+	function getProjectNodesClassNames($currUserId, $currUserProjectId){
 		$result = $this->db_conn->query("SELECT node_class_name, node_class_parent FROM storage_schematic_blocks WHERE node_owner=$currUserId AND node_project=$currUserProjectId;");
 		$classNames = array();
 		foreach ($result as $row) {
@@ -146,7 +143,7 @@ class ModelSchematicNodes{
         #
         $categoryId = -1;
         if ($nodeInternalId > -1 && $nodeCategoryName != "" && !($nodeIsHidden == "" || $nodeIsHidden == false || $nodeIsHidden == 0)){
-            $queryStr = "SELECT * FROM project_categories WHERE project_id=$projectId AND category_name='$nodeCategoryName'";
+            $queryStr = "SELECT * FROM project_categories WHERE project_id=$projectId AND category_name='$nodeCategoryName';";
             $result = $this->db_conn->query($queryStr);
 
             if ($result->num_rows > 0){
@@ -182,6 +179,9 @@ class ModelSchematicNodes{
 	#	Returns node ordered to be able generate javascript to be included in html without any errors that some class are not defined when class extends some toher class.
 	#
 	function getOrderedNodesForProject($userOwner, $projectId){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
 		$queryStr = "";
 		//$queryStr .= "SELECT * FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId;";
 		$queryStr .= "SELECT node_directory, node_display_name, node_class_name, node_class_parent, internal_id FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId;";
@@ -230,6 +230,9 @@ class ModelSchematicNodes{
      * extension of some other node is inserted later to have this parent node to be defined.
      */
     function getJavascriptForNodes($userOwner, $projectId){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
 		$orderedNodesList = $this->getOrderedNodesForProject($userOwner, $projectId);
 		
 		foreach ($orderedNodesList as $node){
@@ -252,6 +255,9 @@ class ModelSchematicNodes{
      * then GraphLang.LibraryBlocks = {} and so to overcome javascript error that these variables are not defined.
      */
     function getJavascriptObjectsInitDefinitionForProject($userOwner, $projectId){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
         $queryStr = "SELECT node_class_name FROM `storage_schematic_blocks` WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name NOT LIKE 'draw2d%' GROUP BY node_class_name;";
         $result = $this->db_conn->query($queryStr);
 
@@ -285,6 +291,9 @@ class ModelSchematicNodes{
     }
 
     function getNodesWithCategories($userOwner, $projectId){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
         $queryStr = "";
 
         $queryStr .= "SELECT";
@@ -322,7 +331,10 @@ class ModelSchematicNodes{
     }
 
     function getUserDefinedNodesClassNames($userOwner, $projectId){
-        $queryStr = "SELECT node_class_name FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_parent LIKE 'GraphLang.UserDefinedNode'";
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
+        $queryStr = "SELECT node_class_name FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_parent LIKE 'GraphLang.UserDefinedNode';";
         $result = $this->db_conn->query($queryStr);
 
         $objectClassArray = array();

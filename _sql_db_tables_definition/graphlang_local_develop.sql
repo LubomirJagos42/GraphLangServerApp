@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 16, 2024 at 02:07 AM
+-- Generation Time: Jun 16, 2024 at 07:35 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -41,8 +41,8 @@ CREATE TABLE `active_users` (
 --
 
 INSERT INTO `active_users` (`internal_id`, `name`, `email`, `password`, `last_logged`, `token`) VALUES
-(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2024-05-28 00:00:00', ''),
-(2, 'GraphLang_Core', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', NULL, ''),
+(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2024-06-16 19:35:03', '9ec96278598d2a0334cd41bcc78ef5df'),
+(2, 'GraphLang_Core', 'graphlang@core.com', '6a284155906c26cbca20c53376bc63ac', '2024-06-16 19:26:59', 'c82287ce146496446581552d7d11da6a'),
 (4, 'John Doe', 'john.doe.nonexisting.guy@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
 (5, 'Lucy Skyler', 'lucy.skyler.nonexsiting@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, '');
 

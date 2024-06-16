@@ -1,5 +1,8 @@
 <?php
 $EXECUTION_START_TIME = microtime(true);
+
+session_start();
+
 include_once("application/config_database.php");
 include_once("application/ControllerDefault.php");
 
@@ -8,8 +11,10 @@ include_once("application/ControllerDefault.php");
 	$GENERATE_SCRIPT_EXECUTION_TIME = true;
 
 	$q = "";
+	$usertoken = "";
 	if (isset($_GET['q'])) $q = $_GET['q'];
-	
+	if (isset($_GET['token'])) $usertoken = $_GET['token'];
+
 	#
 	#	Basic routing based on 'q' param from url
 	#
@@ -30,6 +35,11 @@ include_once("application/ControllerDefault.php");
 		$controller->doExperimentGetJavascriptForNodes();
 	}else if($q == "doExperimentDebug"){
 		$controller->doExperimentDebug();
+	}else if($q == "userLogin"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doUserLogin();
+	}else if($q == "userLoginForm"){
+		$controller->doUserLoginForm();
 	}else{
 		$controller->doNotFound();			
 	}

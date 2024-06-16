@@ -9,7 +9,7 @@
 	<body>
 		<h1>Experimental View 1</h1>
 		
-		User is logged: <?php echo $isUserLogged; ?><br/>
+		User is logged: <?php print_r($isUserLogged); ?><br/>
 		User ID: <?php echo $userId; ?><br/>
 		Project ID: <?php echo $projectId; ?><br/>
 		<br />
