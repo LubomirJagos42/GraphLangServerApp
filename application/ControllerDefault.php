@@ -22,7 +22,14 @@ class ControllerDefault{
     }
 	
 	function doGraphLangIDE(){
-		include("GraphLang/GraphLang IDE/GrahpLang IDE Generated 1.php");
+        $currentUser = 2;
+        $currentProject = 47;
+
+        $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
+        $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
+        $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
+
+        include("GraphLang/GraphLang IDE/GrahpLang IDE Generated 1.php");
 	}
 
 	function doNotFound(){
@@ -75,8 +82,21 @@ class ControllerDefault{
 		$nodeDir = $_POST['nodeDir'];
 		$nodeLanguage = $_POST['nodeLanguage'];
 		$nodeDisplayName = $_POST['nodeDisplayName'];
-		
-		$outputStr .= $this->modelSchematicNodes->saveNode($nodeOwner, $projectId, $nodeName, $nodeContent, $nodeClassParent, $nodeLanguage, $nodeDir, $nodeDisplayName);
+        $nodeIsHidden =  $_POST['nodeIsHidden'];
+        $nodeCategoryName =  $_POST['nodeCategory'];
+
+		$outputStr .= $this->modelSchematicNodes->saveNode(
+            $nodeOwner,
+            $projectId,
+            $nodeName,
+            $nodeContent,
+            $nodeClassParent,
+            $nodeLanguage,
+            $nodeDir,
+            $nodeDisplayName,
+            $nodeIsHidden,
+            $nodeCategoryName
+        );
 		
 		echo($outputStr);
 	}
@@ -100,8 +120,14 @@ class ControllerDefault{
 	}
 	
 	function doExperimentGetJavascriptForNodes(){
-		$orderedNodesArray = $this->modelSchematicNodes->getJavascriptForNodes(2, 47);
-		
+		#string output is now happening in model but must be here to have rihgt decoupling here in this php application
+        $orderedNodesArray = $this->modelSchematicNodes->getJavascriptForNodes(2, 47);
 	}
+
+    function doExperimentDebug(){
+        $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories(2,47);
+        print_r($nodesNamesWithCategories);
+    }
+
 }
 ?>

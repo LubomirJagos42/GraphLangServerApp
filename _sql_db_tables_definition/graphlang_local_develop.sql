@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 13, 2024 at 08:45 PM
+-- Generation Time: Jun 16, 2024 at 02:07 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -109,6 +109,7 @@ CREATE TABLE `storage_schematic_blocks` (
   `node_class_parent` varchar(1000) DEFAULT NULL,
   `node_content_code` blob NOT NULL,
   `node_language` varchar(2000) DEFAULT NULL,
+  `node_isHidden` tinyint(1) NOT NULL DEFAULT 0,
   `node_directory` varchar(2000) DEFAULT NULL,
   `node_owner` int(11) NOT NULL,
   `node_project` int(11) DEFAULT NULL,
@@ -141,6 +142,12 @@ CREATE TABLE `user_projects` (
 --
 ALTER TABLE `active_users`
   ADD PRIMARY KEY (`internal_id`);
+
+--
+-- Indexes for table `nodes_to_category_assignment`
+--
+ALTER TABLE `nodes_to_category_assignment`
+  ADD UNIQUE KEY `category_id` (`category_id`,`node_id`,`project_id`);
 
 --
 -- Indexes for table `project_categories`

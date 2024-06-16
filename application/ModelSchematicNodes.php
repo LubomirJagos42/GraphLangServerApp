@@ -57,7 +57,7 @@ class ModelSchematicNodes{
 	/**
 	 *	Store node into DB for user and project, if node is already defined it will do UPDATE instead of INSERT
 	 */
-	function saveNode($userOwner, $projectId, $nodeClassName, $nodeClassContent, $nodeClassParent = "", $nodeLanguage = "", $nodeDir = "", $nodeDisplayName = ""){
+	function saveNode($userOwner, $projectId, $nodeClassName, $nodeClassContent, $nodeClassParent = "", $nodeLanguage = "", $nodeDir = "", $nodeDisplayName = "", $nodeIsHidden = false, $nodeCategoryName = ""){
 		$outputStr = "";
 		$isNodeDefined = $this->isNodeDefined($userOwner, $projectId, $nodeClassName, $nodeLanguage);
 
@@ -93,25 +93,87 @@ class ModelSchematicNodes{
 			$queryStr .= ", node_directory='$nodeDir'";
 			$queryStr .= ", node_language='$nodeLanguage'";
 			$queryStr .= ", node_display_name='$nodeDisplayName'";
+			$queryStr .= ", node_isHidden=$nodeIsHidden";
 			$queryStr .= " WHERE";
 			//$queryStr .= "  node_owner=$userOwner";
 			//$queryStr .= "  AND node_project=$projectId";
 			//$queryStr .= "  AND node_class_name='$nodeClassName'";
 			$queryStr .= " internal_id=$nodeInternalId";
 			$queryStr .= ";";
-			
+
+            $result = $this->db_conn->query($queryStr);
+
 			$outputStr .= "saveNode() - UPDATE is used, node internal id: $nodeInternalId\n";
 		}else{
-			$queryStr .= "INSERT INTO storage_schematic_blocks (node_owner, node_project, node_display_name, node_class_name, node_class_parent, node_content_code, node_directory, node_language) VALUES";
-			$queryStr .= " ($userOwner, $projectId, '$nodeDisplayName', '$nodeClassName', '$nodeClassParent', UNHEX('$nodeClassContent'), '$nodeDir', '$nodeLanguage');";
+			$queryStr .= "INSERT INTO storage_schematic_blocks (";
+            $queryStr .= "node_owner";
+            $queryStr .= ", node_project";
+            $queryStr .= ", node_display_name";
+            $queryStr .= ", node_class_name";
+            $queryStr .= ", node_class_parent";
+            $queryStr .= ", node_content_code";
+            $queryStr .= ", node_directory";
+            $queryStr .= ", node_language";
+            $queryStr .= ", node_isHidden";
+            $queryStr .= ") VALUES (";
+			$queryStr .= "$userOwner";
+            $queryStr .= ", $projectId";
+            $queryStr .= ", '$nodeDisplayName'";
+            $queryStr .= ", '$nodeClassName'";
+            $queryStr .= ", '$nodeClassParent'";
+            $queryStr .= ", UNHEX('$nodeClassContent')";
+            $queryStr .= ", '$nodeDir'";
+            $queryStr .= ", '$nodeLanguage'";
+            $queryStr .= ", $nodeIsHidden";
+            $queryStr .= ");";
 
-			$outputStr .= "saveNode() - INSERT is used\n";			
+			$outputStr .= "saveNode() - INSERT is used\n";
+
+            $result = $this->db_conn->query($queryStr);
+            if ($result === TRUE) {
+                $nodeInternalId = $this->db_conn->insert_id;
+            } else {
+                $outputStr .= "ERROR: ". $conn->error ."\n";
+            }
 		}
-		$result = $this->db_conn->query($queryStr);
 		$affected_rows = $this->db_conn->affected_rows;
 
 		$outputStr .= "Query result: $result\n";
 		$outputStr .= "\tAffected rows: $affected_rows\n";
+
+        #
+        #   Save CATEGORY for node
+        #
+        $categoryId = -1;
+        if ($nodeInternalId > -1 && $nodeCategoryName != "" && !($nodeIsHidden == "" || $nodeIsHidden == false || $nodeIsHidden == 0)){
+            $queryStr = "SELECT * FROM project_categories WHERE project_id=$projectId AND category_name='$nodeCategoryName'";
+            $result = $this->db_conn->query($queryStr);
+
+            if ($result->num_rows > 0){
+                $row = $result->fetch_row();
+                $categoryId = $row[0];
+            }else{
+                $queryStr = "INSERT INTO project_categories (category_name, project_id) VALUES ('$nodeCategoryName', $projectId);";
+                $result = $this->db_conn->query($queryStr);
+                if ($result === TRUE){
+                    $categoryId = $this->db_conn->insert_id;
+                }
+            }
+        }
+        if ($nodeInternalId > -1 && $categoryId > -1){
+            $queryStr = "INSERT INTO nodes_to_category_assignment (category_id, node_id, project_id) VALUES ($categoryId, $nodeInternalId, $projectId);";
+            try{
+                $result = $this->db_conn->query($queryStr);
+            }catch (Exception $e){}
+
+            if ($result === TRUE){
+                $outputStr .= "Node $nodeDisplayName ($nodeInternalId, $nodeClassName) added to category '$nodeCategoryName' ($categoryId)\n";
+            }else{
+                $outputStr .= "ERROR: CATEGORY: ". $this->db_conn->error ."\n";
+            }
+        }else{
+            $outputStr .= "No category defined for node.\n";
+        }
 
 		return $outputStr;
 	}
@@ -159,31 +221,117 @@ class ModelSchematicNodes{
 		
 		return $nodesArray;
 	}
-	
-	function getJavascriptForNodes($userOwner, $projectId){
+
+    /**
+     * @param $userOwner
+     * @param $projectId
+     * @return void
+     * @description This returns full javascript definitions of all nodes for user project in right ordeer ie. if there is some node which is
+     * extension of some other node is inserted later to have this parent node to be defined.
+     */
+    function getJavascriptForNodes($userOwner, $projectId){
 		$orderedNodesList = $this->getOrderedNodesForProject($userOwner, $projectId);
 		
-		$nodeCounter = 0;
 		foreach ($orderedNodesList as $node){
 			$queryStr = "SELECT node_content_code FROM storage_schematic_blocks WHERE internal_id=". $node['internal_id'] ." AND node_owner=$userOwner AND node_project=$projectId;";
 			$result = $this->db_conn->query($queryStr);
 			foreach ($result as $row) {
 				echo($row['node_content_code']);
 				echo("\n");
-
-				/*
-				if ($nodeCounter == 75){
-					echo($row['node_content_code'] .'"');
-				}
-				*/
 			}
-			
-			$nodeCounter++;
-			//if ($nodeCounter == 74) break;
 		}
 		echo("\n");
-		
 	}
-	
+
+    /**
+     * @param $userOwner
+     * @param $projectId
+     * @return void
+     * @description This will return string javascript object for library block initialization. Since every schematic blocs is part of something
+     * similar to GraphLang.LibraryBlocks.SomeCategory... therefore these objects must be first initializied like raphLang = {},
+     * then GraphLang.LibraryBlocks = {} and so to overcome javascript error that these variables are not defined.
+     */
+    function getJavascriptObjectsInitDefinitionForProject($userOwner, $projectId){
+        $queryStr = "SELECT node_class_name FROM `storage_schematic_blocks` WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name NOT LIKE 'draw2d%' GROUP BY node_class_name;";
+        $result = $this->db_conn->query($queryStr);
+
+        $objectClassArray = array();
+        $k = 0;
+        foreach ($result as $row) {
+            array_push($objectClassArray, array());
+            $objectClassArray[$k] = explode('.', $row['node_class_name']);
+            $k++;
+        }
+
+        $alreadyDefinedObjects = array();
+        foreach ($objectClassArray as $objectTreeItemArray){
+            $objectToBeDefined = "";
+            $k = 0;
+            foreach ($objectTreeItemArray as $objectName){
+                #don't do object definition for last element
+                if ($k != count($objectTreeItemArray)-1){
+                    if ($objectToBeDefined != "") $objectToBeDefined .= '.';
+                    $objectToBeDefined .= $objectName;
+
+                    #object definition is already done
+                    if (!in_array($objectToBeDefined, $alreadyDefinedObjects)){
+                        array_push($alreadyDefinedObjects, $objectToBeDefined);
+                    }
+                }
+                $k++;
+            }
+        }
+        return $alreadyDefinedObjects;
+    }
+
+    function getNodesWithCategories($userOwner, $projectId){
+        $queryStr = "";
+
+        $queryStr .= "SELECT";
+        $queryStr .= "    project_categories.category_name,";
+        $queryStr .= "    storage_schematic_blocks.node_class_name,";
+        $queryStr .= "    storage_schematic_blocks.node_display_name";
+        $queryStr .= " FROM `storage_schematic_blocks`";
+        $queryStr .= " LEFT JOIN nodes_to_category_assignment";
+        $queryStr .= " ON";
+        $queryStr .= "    storage_schematic_blocks.node_project = nodes_to_category_assignment.project_id AND";
+        $queryStr .= "    storage_schematic_blocks.internal_id = nodes_to_category_assignment.node_id";
+        $queryStr .= " LEFT JOIN project_categories";
+        $queryStr .= " ON";
+        $queryStr .= "    nodes_to_category_assignment.project_id = project_categories.project_id AND";
+        $queryStr .= "    nodes_to_category_assignment.category_id = project_categories.internal_id";
+        $queryStr .= " WHERE";
+        $queryStr .= "    storage_schematic_blocks.node_owner=$userOwner AND";
+        $queryStr .= "    storage_schematic_blocks.node_project=$projectId AND";
+        $queryStr .= "    storage_schematic_blocks.node_isHidden=false";
+        $queryStr .= " ORDER BY";
+        $queryStr .= "	  project_categories.category_name,";
+        $queryStr .= "    storage_schematic_blocks.node_display_name;";
+
+        $result = $this->db_conn->query($queryStr);
+
+        $nodesByCategories = array();
+        $nodesByCategories[0] = array();    #default category for nodes with no category
+        while ($row = $result->fetch_row()){
+            $categoryName = $row[0] ? $row[0] : 0;
+            if (!array_key_exists($categoryName, $nodesByCategories)) $nodesByCategories[$categoryName] = array();
+            array_push($nodesByCategories[$categoryName], array($row[1], $row[2]));
+        }
+
+        return $nodesByCategories;
+    }
+
+    function getUserDefinedNodesClassNames($userOwner, $projectId){
+        $queryStr = "SELECT node_class_name FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_parent LIKE 'GraphLang.UserDefinedNode'";
+        $result = $this->db_conn->query($queryStr);
+
+        $objectClassArray = array();
+        foreach ($result as $row) {
+            array_push($objectClassArray, $row['node_class_name']);
+        }
+
+        return $objectClassArray;
+    }
+
 }
 ?>

@@ -28,6 +28,8 @@ include_once("application/ControllerDefault.php");
 	}else if($q == "experimentGetJavascriptForNodes"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doExperimentGetJavascriptForNodes();
+	}else if($q == "doExperimentDebug"){
+		$controller->doExperimentDebug();
 	}else{
 		$controller->doNotFound();			
 	}
