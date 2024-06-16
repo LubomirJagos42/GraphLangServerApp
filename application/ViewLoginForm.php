@@ -30,6 +30,8 @@ if ($isLogged == false){
     SESSION:<br />
     <span>username: <?php echo($_SESSION['username']);?></span><br/>
     <span>token: <?php echo($_SESSION['usertoken']);?></span><br/>
+    <br />
+    <a href="?">Home</a>
 <?php
 }
 ?>

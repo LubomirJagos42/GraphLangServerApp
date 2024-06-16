@@ -22,20 +22,62 @@ class ControllerDefault{
         return $defaultVal;
     }
 
+    private function getCurrentUserLoginVariables(){
+        #
+        #   username from:
+        #       1. get
+        #       2. post
+        #       3. session
+        #
+        $username = $this->getVariableFromGet("username", "");
+        if (!$username) $username = $this->getVariableFromPost("username", "");
+        if (!$username) $username = isset($_SESSION["username"]) ? $_SESSION["username"] : "";
+
+        #
+        #   password from:
+        #       1. post
+        #
+        $password = $this->getVariableFromPost("password", "");
+
+        #
+        #   token from:
+        #       1. get
+        #       2. post
+        #       3. session generate one for login MD5(MD5(password raw string) + TOKEN)
+        #
+        $token = $this->getVariableFromGet("token", "");
+        if (!$token) $token = $this->getVariableFromPost("token", "");
+        if (!$token){
+            $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
+            $token = md5($passwordMD5 . $this->modelLogin->getCurrentUserToken());
+        }
+
+        return array(
+            "username" => $username,
+            "password" => $password,
+            "token" => $token
+        );
+    }
+
     function doDefaultRouting(){
         $userId = $this->modelLogin->getCurrentUserId();
         $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
         $projectId = $this->modelLogin->getCurrentUserProjectId();
 
-		$isUserLogged =	$this->modelLogin->isUserLogged(
+		$loginInfo = $this->modelLogin->isUserLogged(
             $this->modelLogin->getCurrentUsername(),
             "",
             md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
         );
 
-		$userNodesClassNamesArray = $this->modelSchematicNodes->getProjectNodesClassNames($userId, $projectId);
-		
-		include("ViewExperiment_1.php");
+        if ($loginInfo["isLogged"] == 1){
+            $userNodesClassNamesArray = $this->modelSchematicNodes->getProjectNodesClassNames($userId, $projectId);
+            include("ViewExperiment_1.php");
+        }else{
+            echo("experiment: user not logged!<br/>\n");
+            echo("<a href='?'>Home</a><br/>\n");
+        }
+
     }
 	
 	function doGraphLangIDE(){
@@ -102,35 +144,17 @@ class ControllerDefault{
 	}
 
 	function doUploadNodesToServer(){
-        #
-        #   username from:
-        #       1. get
-        #       2. post
-        #       3. session
-        #
-        $username = $this->getVariableFromGet("username", "");
-        if (!$username) $username = $this->getVariableFromPost("username", "");
-        if (!$username) $username = isset($_SESSION["username"]) ? $_SESSION["username"] : "";
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
 
         #
-        #   password from:
-        #       1. post
+        #   Here are data expected coming from python script therefore expected input is:
+        #       username: user email like john.doe@somedomain.com
+        #       password: ""
+        #       token:    token as it should be md5(md5(raw password) + token from server)
         #
-        $password = $this->getVariableFromPost("password", "");
-
-        #
-        #   token from:
-        #       1. get
-        #       2. post
-        #       3. session generate one for login MD5(MD5(password raw string) + TOKEN)
-        #
-        $token = $this->getVariableFromGet("token", "");
-        if (!$token) $token = $this->getVariableFromPost("token", "");
-        if (!$token){
-            $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
-            $token = md5($passwordMD5 . $this->modelLogin->getCurrentUserToken());
-        }
-
         $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
         if ($loginInfo['isLogged'] == 0){
             echo("user not logged!\n");
@@ -139,7 +163,6 @@ class ControllerDefault{
             echo("token: $token\n");
             return;
         }
-
 
 		$outputStr = "";
 		
@@ -202,13 +225,46 @@ class ControllerDefault{
 	}
 	
 	function doExperimentGetJavascriptForNodes(){
-		#string output is now happening in model but must be here to have rihgt decoupling here in this php application
-        $orderedNodesArray = $this->modelSchematicNodes->getJavascriptForNodes(2, 47);
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
+
+        $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
+        if ($loginInfo['isLogged'] == 1) {
+            $orderedNodesArray = $this->modelSchematicNodes->getJavascriptForNodes(
+                $this->modelLogin->getCurrentUserId(),
+                $this->modelLogin->getCurrentUserProjectId()
+            );
+        }else{
+            $projectId = $this->modelLogin->getCurrentUserProjectId();
+            echo("alert('javascript nodes from server: user not logged!\nprojectId: $projectId');\n");
+        }
 	}
 
     function doExperimentDebug(){
-        $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories(2,47);
-        print_r($nodesNamesWithCategories);
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
+
+        #
+        #   Here are data expected coming from python script therefore expected input is:
+        #       username: user email like john.doe@somedomain.com
+        #       password: ""
+        #       token:    token as it should be md5(md5(raw password) + token from server)
+        #
+        $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
+        if ($loginInfo['isLogged'] == 1) {
+            $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories(
+                $this->modelLogin->getCurrentUserId(),
+                $this->modelLogin->getCurrentUserProjectId()
+            );
+            print_r($nodesNamesWithCategories);
+        }else{
+            echo("user not logged!<br /><br />\n");
+            echo("<a href='?'>Home</a>");
+        }
     }
 
     function doUserLogin(){
@@ -225,34 +281,10 @@ class ControllerDefault{
     }
 
     function doUserLoginForm(){
-        #
-        #   username from:
-        #       1. get
-        #       2. post
-        #       3. session
-        #
-        $username = $this->getVariableFromGet("username", "");
-        if (!$username) $username = $this->getVariableFromPost("username", "");
-        if (!$username) $username = isset($_SESSION["username"]) ? $_SESSION["username"] : "";
-
-        #
-        #   password from:
-        #       1. post
-        #
-        $password = $this->getVariableFromPost("password", "");
-
-        #
-        #   token from:
-        #       1. get
-        #       2. post
-        #       3. session generate one for login MD5(MD5(password raw string) + TOKEN)
-        #
-        $token = $this->getVariableFromGet("token", "");
-        if (!$token) $token = $this->getVariableFromPost("token", "");
-        if (!$token){
-            $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
-            $token = md5($passwordMD5 . $this->modelLogin->getCurrentUserToken());
-        }
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
 
         $outputArray = $this->modelLogin->isUserLogged($username, $password, $token);
         $isLogged = $outputArray['isLogged'];
@@ -264,6 +296,15 @@ class ControllerDefault{
         #       2. user is logged - display some info
         #
         include("ViewLoginForm.php");
+    }
+
+    function doUserLogout(){
+        $_SESSION['username'] = "";
+        $_SESSION['password'] = "";
+        $_SESSION['token'] = "";
+
+        echo("user logout<br /><br />\n");
+        echo("<a href='?'>Home</a>\n");
     }
 }
 ?>

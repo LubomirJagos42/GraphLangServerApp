@@ -40,6 +40,8 @@ include_once("application/ControllerDefault.php");
 		$controller->doUserLogin();
 	}else if($q == "userLoginForm"){
 		$controller->doUserLoginForm();
+	}else if($q == "logout"){
+		$controller->doUserLogout();
 	}else{
 		$controller->doNotFound();			
 	}
