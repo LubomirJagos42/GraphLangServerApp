@@ -352,6 +352,44 @@ class ModelSchematicNodes{
         return $projectsList;
     }
 
+    function getOthersPublicProjects($userOwner){
+        $userOwner = (int) $userOwner;
+
+        $queryStr = "SELECT ";
+        $queryStr .= " user_projects.internal_id";
+        $queryStr .= ", user_projects.project_owner";
+        $queryStr .= ", user_projects.project_graphlang_version";
+        $queryStr .= ", user_projects.project_name";
+        $queryStr .= ", user_projects.project_image";
+        $queryStr .= ", user_projects.project_visibility";
+        $queryStr .= ", user_projects.project_description";
+        $queryStr .= ", user_projects.project_code_template";
+        $queryStr .= ", active_users.name AS owner_name";
+        $queryStr .= ", active_users.email AS owner_mail";
+        $queryStr .= " FROM user_projects";
+        $queryStr .= " LEFT JOIN active_users";
+        $queryStr .= " ON user_projects.project_owner = active_users.internal_id";
+        $queryStr .= " WHERE user_projects.project_owner != $userOwner AND user_projects.project_visibility = 'public';";
+        $result = $this->db_conn->query($queryStr);
+
+        $projectsList = array();
+        foreach ($result as $row) {
+            array_push($projectsList, array(
+                "id" => $row["internal_id"],
+                "ownerName" => $row['owner_name'],
+                "ownerMail" => $row['owner_mail'],
+                "ideVersion" => $row["project_graphlang_version"],
+                "name" => $row["project_name"],
+                "visibility" => $row["project_visibility"],
+                "image" => $row["project_image"],
+                "description" => $row["project_description"],
+                "codeTemplate" => $row["project_code_template"]
+            ));
+        }
+
+        return $projectsList;
+    }
+
     function getUserDefinedNodesClassNames($userOwner, $projectId){
         $userOwner = (int) $userOwner;
         $projectId = (int) $projectId;

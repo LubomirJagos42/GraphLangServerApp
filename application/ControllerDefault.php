@@ -323,6 +323,7 @@ class ControllerDefault{
 
         if ($loginInfo['isLogged'] == 1){
             $projectList = $this->modelSchematicNodes->getUserProjectList($currentUser);
+            $othersProjectList = $this->modelSchematicNodes->getOthersPublicProjects($currentUser);
 
             $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix();
             include("ViewUserProjectList.php");
