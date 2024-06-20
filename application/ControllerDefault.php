@@ -1,15 +1,18 @@
 <?php
 include_once("ModelLogin.php");
 include_once("ModelSchematicNodes.php");
+include_once("ModelDirectory.php");
 
 #Controller Default Class
 class ControllerDefault{
     private $modelLogin;
 	private $modelSchematicNodes;
+	private $modelDirectory;
 
     function __construct($db_conn){
         $this->modelLogin = new ModelLogin($db_conn);
 		$this->modelSchematicNodes = new modelSchematicNodes($db_conn);
+		$this->modelDirectory = new modelDirectory($db_conn);
     }
 
     private function getVariableFromPost($varname, $defaultVal = null){
@@ -95,8 +98,9 @@ class ControllerDefault{
             $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
             $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
             $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
+            $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix();
 
-            include("GraphLang/GraphLang IDE/GrahpLang IDE Generated 1.php");
+            include($htmlIncludeDirPrefix ."/GrahpLang IDE Generated 1.php");
         }else if ($loginInfo['isLogged'] == 1 && $currentProject == -1) {
             $this->doNotFound();
         }else{
@@ -305,6 +309,26 @@ class ControllerDefault{
 
         echo("user logout<br /><br />\n");
         echo("<a href='?'>Home</a>\n");
+    }
+
+    function doUserProjectList(){
+        $currentUser = $this->modelLogin->getCurrentUserId();
+        $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
+
+        $loginInfo = $this->modelLogin->isUserLogged(
+            $this->modelLogin->getCurrentUsername(),
+            "",
+            md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
+        );
+
+        if ($loginInfo['isLogged'] == 1){
+            $projectList = $this->modelSchematicNodes->getUserProjectList($currentUser);
+
+            $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix();
+            include("ViewUserProjectList.php");
+        }else{
+            $this->doUserLoginForm();
+        }
     }
 }
 ?>

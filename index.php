@@ -42,6 +42,8 @@ include_once("application/ControllerDefault.php");
 		$controller->doUserLoginForm();
 	}else if($q == "logout"){
 		$controller->doUserLogout();
+	}else if($q == "userPojectList"){
+		$controller->doUserProjectList();
 	}else{
 		$controller->doNotFound();			
 	}

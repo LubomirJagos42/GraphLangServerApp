@@ -31,7 +31,7 @@ if ($isLogged == false){
     <span>username: <?php echo($_SESSION['username']);?></span><br/>
     <span>token: <?php echo($_SESSION['usertoken']);?></span><br/>
     <br />
-    <a href="?">Home</a>
+    <a href="?q=notFound">Home</a>
 <?php
 }
 ?>

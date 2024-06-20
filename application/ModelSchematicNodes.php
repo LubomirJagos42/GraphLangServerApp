@@ -330,19 +330,40 @@ class ModelSchematicNodes{
         return $nodesByCategories;
     }
 
+    function getUserProjectList($userOwner){
+        $userOwner = (int) $userOwner;
+
+        $queryStr = "SELECT internal_id, project_graphlang_version, project_name, project_visibility, project_image, project_description, project_code_template FROM user_projects WHERE project_owner=$userOwner;";
+        $result = $this->db_conn->query($queryStr);
+
+        $projectsList = array();
+        foreach ($result as $row) {
+            array_push($projectsList, array(
+                "id" => $row["internal_id"],
+                "ideVersion" => $row["project_graphlang_version"],
+                "name" => $row["project_name"],
+                "visibility" => $row["project_visibility"],
+                "image" => $row["project_image"],
+                "description" => $row["project_description"],
+                "codeTemplate" => $row["project_code_template"]
+            ));
+        }
+
+        return $projectsList;
+    }
+
     function getUserDefinedNodesClassNames($userOwner, $projectId){
         $userOwner = (int) $userOwner;
         $projectId = (int) $projectId;
 
-        $queryStr = "SELECT node_class_name FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_parent LIKE 'GraphLang.UserDefinedNode';";
+        $queryStr = "SELECT node_class_name FROM storage_schematic_blocks WHERE node_class_parent LIKE '%UserDefinedNode%' AND node_owner=$userOwner AND node_project=$projectId;";
         $result = $this->db_conn->query($queryStr);
 
-        $objectClassArray = array();
+        $userDefinedNodes = array();
         foreach ($result as $row) {
-            array_push($objectClassArray, $row['node_class_name']);
+            array_push($userDefinedNodes, $row["node_class_name"]);
         }
-
-        return $objectClassArray;
+        return $userDefinedNodes;
     }
 
 }
