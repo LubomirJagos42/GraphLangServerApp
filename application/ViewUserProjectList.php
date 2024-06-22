@@ -8,6 +8,7 @@
         <h1>User project list</h1>
 		<table border="1px">
             <tr>
+                <td>ID</td>
                 <td>name</td>
                 <td>description</td>
                 <td>ideVersion</td>
@@ -16,20 +17,23 @@
                 <td>codeTemplate</td>
                 <td></td>
                 <td></td>
+                <td></td>
             </tr>
 
         <?php
         foreach ($projectList as $projectItem){
         ?>
             <tr>
+                <td><?php echo($projectItem["id"]); ?></td>
                 <td><?php echo($projectItem["name"]); ?></td>
                 <td><?php echo($projectItem["description"]); ?></td>
                 <td><?php echo($projectItem["ideVersion"]); ?></td>
-                <td><img src="<?php echo($projectItem["image"]); ?>" /></td>
+                <td><img width="100px" src="<?php echo($projectItem["image"]); ?>" /></td>
                 <td><?php echo($projectItem["visibility"]); ?></td>
                 <td><?php echo($projectItem["codeTemplate"]); ?></td>
                 <td><a href="?q=ide&projectId=<?php echo($projectItem["id"]); ?>">open</a></td>
                 <td><a href="?q=deleteProject&projectId=<?php echo($projectItem["id"]); ?>">delete</a></td>
+                <td><a href="?q=experimentGetOrderedNodes&projectId=<?php echo($projectItem["id"]); ?>">nodes list</a></td>
             </tr>
         <?php
         }
@@ -39,6 +43,7 @@
         <h2>Others public projects</h2>
         <table border="1px">
             <tr>
+                <td>ID</td>
                 <td>owner name</td>
                 <td>owner mail</td>
                 <td>project name</td>
@@ -55,12 +60,13 @@
             foreach ($othersProjectList as $projectItem){
                 ?>
                 <tr>
+                    <td><?php echo($projectItem["id"]); ?></td>
                     <td><?php echo($projectItem["ownerName"]); ?></td>
                     <td><?php echo($projectItem["ownerMail"]); ?></td>
                     <td><?php echo($projectItem["name"]); ?></td>
                     <td><?php echo($projectItem["description"]); ?></td>
                     <td><?php echo($projectItem["ideVersion"]); ?></td>
-                    <td><img src="<?php echo($projectItem["image"]); ?>" /></td>
+                    <td><img width="100px" src="<?php echo($projectItem["image"]); ?>" /></td>
                     <td><?php echo($projectItem["visibility"]); ?></td>
                     <td><?php echo($projectItem["codeTemplate"]); ?></td>
                     <td><a href="?q=ide&projectId=<?php echo($projectItem["id"]); ?>">open</a></td>

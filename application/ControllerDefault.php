@@ -2,6 +2,7 @@
 include_once("ModelLogin.php");
 include_once("ModelSchematicNodes.php");
 include_once("ModelDirectory.php");
+include_once("ModelProject.php");
 
 #Controller Default Class
 class ControllerDefault{
@@ -13,6 +14,7 @@ class ControllerDefault{
         $this->modelLogin = new ModelLogin($db_conn);
 		$this->modelSchematicNodes = new modelSchematicNodes($db_conn);
 		$this->modelDirectory = new modelDirectory($db_conn);
+		$this->modelProject = new modelProject($db_conn);
     }
 
     private function getVariableFromPost($varname, $defaultVal = null){
@@ -98,9 +100,15 @@ class ControllerDefault{
             $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
             $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
             $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
-            $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix();
 
-            include($htmlIncludeDirPrefix ."/GrahpLang IDE Generated 1.php");
+            $ideVersion = $this->modelProject->getProjectVersion($currentProject);
+            $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion);
+            if ($ideVersion != ""){
+                include($htmlIncludeDirPrefix ."/GrahpLang IDE Generated 1.php");
+            }else{
+                include("ViewNotFound.php");
+            }
+
         }else if ($loginInfo['isLogged'] == 1 && $currentProject == -1) {
             $this->doNotFound();
         }else{
@@ -214,17 +222,23 @@ class ControllerDefault{
         $orderedNodesArray = $this->modelSchematicNodes->getOrderedNodesForProject($userOwner, $projectId);
 		
 		$outputStr = "";
-		$outputStr .= "<table>\n";
-		for($k=0; $k < count($orderedNodesArray); $k++){
-			$outputStr .= "<tr>";
-			$outputStr .= "<td>". $orderedNodesArray[$k]['node_directory'] ."</td>\n";
-			$outputStr .= "<td>". $orderedNodesArray[$k]['node_display_name'] ."</td>\n";
-			$outputStr .= "<td>". $orderedNodesArray[$k]['node_class_name'] ."</td>\n";
-			$outputStr .= "<td>". $orderedNodesArray[$k]['node_class_parent'] ."</td>\n";
-			$outputStr .= "<td>". $orderedNodesArray[$k]['internal_id'] ."</td>\n";
-			$outputStr .= "</tr>\n";
-		}
-		$outputStr .= "</table>\n";
+		if (count($orderedNodesArray)) {
+            $outputStr .= "<table>\n";
+            for ($k = 0; $k < count($orderedNodesArray); $k++) {
+                $outputStr .= "<tr>";
+                $outputStr .= "<td>" . $orderedNodesArray[$k]['node_directory'] . "</td>\n";
+                $outputStr .= "<td>" . $orderedNodesArray[$k]['node_display_name'] . "</td>\n";
+                $outputStr .= "<td>" . $orderedNodesArray[$k]['node_class_name'] . "</td>\n";
+                $outputStr .= "<td>" . $orderedNodesArray[$k]['node_class_parent'] . "</td>\n";
+                $outputStr .= "<td>" . $orderedNodesArray[$k]['internal_id'] . "</td>\n";
+                $outputStr .= "</tr>\n";
+            }
+            $outputStr .= "</table>\n";
+        }else{
+            $outputStr .= "No ordered nodes found!\n";
+            $outputStr .= "<br /><br /><a href='?q=userProjectList'>Back to project list</a>\n";
+        }
+
 		echo($outputStr);
 	}
 	
@@ -325,8 +339,67 @@ class ControllerDefault{
             $projectList = $this->modelSchematicNodes->getUserProjectList($currentUser);
             $othersProjectList = $this->modelSchematicNodes->getOthersPublicProjects($currentUser);
 
-            $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix();
             include("ViewUserProjectList.php");
+        }else{
+            $this->doUserLoginForm();
+        }
+    }
+
+    function doCreateProject(){
+        $currentUser = $this->modelLogin->getCurrentUserId();
+        $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
+
+        $loginInfo = $this->modelLogin->isUserLogged(
+            $this->modelLogin->getCurrentUsername(),
+            "",
+            md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
+        );
+
+        if ($loginInfo['isLogged'] == 1){
+
+            $projectName = isset($_POST["name"]) ? $_POST["name"] : "";
+            $projectDescription = isset($_POST["description"]) ? $_POST["description"] : "";
+            $projectVisibility = isset($_POST["visibility"]) ? $_POST["visibility"] : "";
+            $projectCodeTemplate = isset($_POST["codeTemplate"]) ? $_POST["codeTemplate"] : "";
+            $projectLanguage = isset($_POST["language"]) ? $_POST["language"] : "";
+            $projectIdeVersion = isset($_POST["ideVersion"]) ? $_POST["ideVersion"] : "";
+
+            if ($projectName != ""){
+                $check = getimagesize($_FILES["image"]["tmp_name"]);
+                if($check !== false) {
+                    $projectImage = file_get_contents($_FILES["image"]["tmp_name"]);
+                    $imageType = $_FILES["image"]["type"];
+                    $projectImageEncoded = "data:$imageType;base64,". base64_encode($projectImage);
+                }
+
+//                echo($projectName."<br />\n");
+//                echo($projectDescription."<br />\n");
+//                echo($projectVisibility."<br />\n");
+//                echo("<img src='$projectImageEncoded' /><br />\n");
+//                echo($projectCodeTemplate."<br />\n");
+//                echo($projectLanguage."<br />\n");
+//                echo($projectIdeVersion."<br />\n");
+
+
+                $result = $this->modelProject->createProject(
+                    $currentUser,
+                    $projectName,
+                    $projectDescription,
+                    $projectImageEncoded,
+                    $projectVisibility,
+                    $projectCodeTemplate,
+                    $projectLanguage,
+                    $projectIdeVersion
+                );
+
+                echo("project create result: $result<br />\n");
+                echo("<br />\n");
+                echo("<a href='?q=home'>Home</a><br />\n");
+
+            }else{
+                include("ViewCreateProject.php");
+            }
+
         }else{
             $this->doUserLoginForm();
         }
