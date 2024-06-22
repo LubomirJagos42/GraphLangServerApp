@@ -208,7 +208,7 @@ class ControllerDefault{
 		echo($outputStr);
 	}
 	
-	function doExperimentGetOrderedNodes(){
+	function doGetOrderedNodes(){
 		$userOwner = $this->modelLogin->getCurrentUserId();
         $projectId = $this->getVariableFromGet("projectId", "-1");
 
@@ -404,5 +404,22 @@ class ControllerDefault{
             $this->doUserLoginForm();
         }
     }
+
+    function doIsUserLogged(){
+        $userId = $this->modelLogin->getCurrentUserId();
+        $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
+        $projectId = $this->modelLogin->getCurrentUserProjectId();
+
+        $loginInfo = $this->modelLogin->isUserLogged(
+            $this->modelLogin->getCurrentUsername(),
+            "",
+            md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
+        );
+
+        $isLogged = $loginInfo["isLogged"];
+        $token = $loginInfo['token'];
+        echo("{\"isLogged\":$isLogged, \"token\":\"$token\"}");
+    }
+
 }
 ?>

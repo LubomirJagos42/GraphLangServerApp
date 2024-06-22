@@ -28,8 +28,8 @@ include_once("application/ControllerDefault.php");
 	}else if($q == "uploadNodesToServer"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doUploadNodesToServer();	
-	}else if($q == "experimentGetOrderedNodes"){
-		$controller->doExperimentGetOrderedNodes();
+	}else if($q == "getOrderedNodes"){
+		$controller->doGetOrderedNodes();
 	}else if($q == "experimentGetJavascriptForNodes"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doExperimentGetJavascriptForNodes();
@@ -46,6 +46,9 @@ include_once("application/ControllerDefault.php");
 		$controller->doUserProjectList();
 	}else if($q == "createProject"){
 		$controller->doCreateProject();
+	}else if($q == "isUserLogged"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doIsUserLogged();
 	}else{
 		$controller->doNotFound();			
 	}

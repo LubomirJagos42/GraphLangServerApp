@@ -33,7 +33,7 @@
                 <td><?php echo($projectItem["codeTemplate"]); ?></td>
                 <td><a href="?q=ide&projectId=<?php echo($projectItem["id"]); ?>">open</a></td>
                 <td><a href="?q=deleteProject&projectId=<?php echo($projectItem["id"]); ?>">delete</a></td>
-                <td><a href="?q=experimentGetOrderedNodes&projectId=<?php echo($projectItem["id"]); ?>">nodes list</a></td>
+                <td><a href="?q=getOrderedNodes&projectId=<?php echo($projectItem["id"]); ?>">nodes list</a></td>
             </tr>
         <?php
         }
