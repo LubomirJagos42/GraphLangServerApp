@@ -404,5 +404,42 @@ class ModelSchematicNodes{
         return $userDefinedNodes;
     }
 
+    function getNodeCodeContent($userOwner, $projectId, $nodeClassName, $hexFormat = false){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
+        if ($hexFormat){
+            $queryStr = "SELECT node_class_name, node_class_parent, HEX(node_content_code) as node_content_code FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+        }else{
+            $queryStr = "SELECT node_class_name, node_class_parent, node_content_code FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+        }
+        $result = $this->db_conn->query($queryStr);
+
+        $row = $result->fetch_assoc();
+        $outputArray = array();
+        if ($row){
+            $outputArray = array(
+                "nodeClassName" => $row["node_class_name"],
+                "nodeParent" => $row["node_class_parent"],
+                "nodeContentCode" => $row["node_content_code"]
+            );
+        }
+
+        return $outputArray;
+    }
+
+    function updateNodeCodeContent($userOwner, $projectId, $nodeClassName, $nodeClassContent, $hexFormat = false){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
+        if ($hexFormat){
+            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code=UNHEX('$nodeClassContent') WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+        }else{
+            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code='$nodeClassContent' WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+        }
+        $result = $this->db_conn->query($queryStr);
+
+        return $this->db_conn->affected_rows;
+    }
 }
 ?>

@@ -512,5 +512,40 @@ class ControllerDefault{
             $this->doUserLoginForm();
         }
     }
+
+    function doGetNodeJavascriptCode(){
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1) {
+            $userOwner = $this->modelLogin->getCurrentUserId();
+            $projectId = isset($_GET["projectId"]) ? $_GET["projectId"] : "";
+            $nodeClassName = isset($_GET["nodeClassName"]) ? $_GET["nodeClassName"] : "";
+            $nodeInfo = $this->modelSchematicNodes->getNodeCodeContent($userOwner, $projectId, $nodeClassName, true);
+
+            if (!empty($nodeInfo)){
+                echo('{"error": "OK", "nodeContent": "'. $nodeInfo["nodeContentCode"] .'", "nodeClassName": "'. $nodeInfo["nodeClassName"] .'", "nodeParent": "'. $nodeInfo["nodeParent"] .'"}');
+            }else{
+                echo('{"error": "No node was returned!", "nodeContent": "", "nodeClassName": "", "nodeParent": ""}');
+            }
+        }else{
+            echo('{"error": "User not logged!", "nodeContent": "", "nodeClassName": "", "nodeParent": ""}');
+        }
+    }
+
+    function doUpdateNodeJavascriptCode(){
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1) {
+            $userOwner = $this->modelLogin->getCurrentUserId();
+            $projectId = isset($_GET["projectId"]) ? $_GET["projectId"] : "";
+            $nodeClassName = isset($_GET["nodeClassName"]) ? $_GET["nodeClassName"] : "";
+            $newNodeClassContent = isset($_POST["nodeClassContent"]) ? $_POST["nodeClassContent"] : "";
+
+            $result = $this->modelSchematicNodes->updateNodeCodeContent($userOwner, $projectId, $nodeClassName, $newNodeClassContent, true);
+
+            echo('{"error": "OK", "numberOfUpdatedRows": "'.$result.'"}');
+        }else{
+            echo('{"error": "User not logged!", "numberOfUpdatedRows": "0"}');
+        }
+    }
+
 }
 ?>

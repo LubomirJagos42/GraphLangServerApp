@@ -32,6 +32,12 @@ include_once("application/ControllerDefault.php");
 		$controller->doUploadNodesToServer();	
 	}else if($q == "getOrderedNodes"){
 		$controller->doGetOrderedNodes();
+	}else if($q == "getNodeJavascriptCode"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doGetNodeJavascriptCode();
+	}else if($q == "updateNodeJavascriptCode"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doUpdateNodeJavascriptCode();
 	}else if($q == "getJavascriptForNodes"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doGetJavascriptForNodes();
