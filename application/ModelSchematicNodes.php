@@ -420,7 +420,7 @@ class ModelSchematicNodes{
         if ($row){
             $outputArray = array(
                 "nodeClassName" => $row["node_class_name"],
-                "nodeParent" => $row["node_class_parent"],
+                "nodeClassParent" => $row["node_class_parent"],
                 "nodeContentCode" => $row["node_content_code"]
             );
         }

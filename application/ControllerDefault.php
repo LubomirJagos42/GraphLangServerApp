@@ -522,12 +522,12 @@ class ControllerDefault{
             $nodeInfo = $this->modelSchematicNodes->getNodeCodeContent($userOwner, $projectId, $nodeClassName, true);
 
             if (!empty($nodeInfo)){
-                echo('{"error": "OK", "nodeContent": "'. $nodeInfo["nodeContentCode"] .'", "nodeClassName": "'. $nodeInfo["nodeClassName"] .'", "nodeParent": "'. $nodeInfo["nodeParent"] .'"}');
+                echo('{"error": "OK", "nodeContent": "'. $nodeInfo["nodeContentCode"] .'", "nodeClassName": "'. $nodeInfo["nodeClassName"] .'", "nodeClassParent": "'. $nodeInfo["nodeClassParent"] .'"}');
             }else{
-                echo('{"error": "No node was returned!", "nodeContent": "", "nodeClassName": "", "nodeParent": ""}');
+                echo('{"error": "No node was returned!", "nodeContent": "", "nodeClassName": "", "nodeClassParent": ""}');
             }
         }else{
-            echo('{"error": "User not logged!", "nodeContent": "", "nodeClassName": "", "nodeParent": ""}');
+            echo('{"error": "User not logged!", "nodeContent": "", "nodeClassName": "", "nodeClassParent": ""}');
         }
     }
 
