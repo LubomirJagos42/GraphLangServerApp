@@ -17,6 +17,7 @@ class ModelLogin{
         #return true;
 
 		$useremail = $useremail ? $useremail : null;
+        $username = $useremail;
 		$password = $password ? $password : null;
 		$usertoken = $usertoken ? $usertoken : null;
 		
@@ -47,7 +48,7 @@ class ModelLogin{
 		
 		#if token wasn't used and there is name and password provided
 		if ($wasTokenUsed == false && $useremail != "" && $password != ""){
-			$queryStr = "SELECT internal_id, last_logged, TIME_TO_SEC(TIMEDIFF(current_timestamp, last_logged)) FROM active_users WHERE email='$useremail' AND password='$password'";
+			$queryStr = "SELECT internal_id, last_logged, TIME_TO_SEC(TIMEDIFF(current_timestamp, last_logged)) FROM active_users WHERE email='$useremail' AND password='$password';";
             $result = $this->db_conn->query($queryStr);
 		}
 
@@ -60,7 +61,7 @@ class ModelLogin{
             #token was not used, create new one using NOW()
             if ($wasTokenUsed == false){
                 $outputArray['isLogged'] = true;
-                $queryStr = "UPDATE active_users SET token=MD5(CONCAT(password, MD5(NOW()))), last_logged=NOW() WHERE internal_id=$userId";
+                $queryStr = "UPDATE active_users SET token=MD5(CONCAT(password, MD5(NOW()))), last_logged=NOW() WHERE internal_id=$userId;";
                 $result = $this->db_conn->query($queryStr);
             }else{
 
@@ -81,14 +82,14 @@ class ModelLogin{
                 }
 
                 $outputArray['isLogged'] = true;
-                $queryStr = "UPDATE active_users SET token=MD5(CONCAT(password, '$usertoken')), last_logged=NOW() WHERE internal_id=$userId";
+                $queryStr = "UPDATE active_users SET token=MD5(CONCAT(password, '$usertoken')), last_logged=NOW() WHERE internal_id=$userId;";
                 $result = $this->db_conn->query($queryStr);
             }
 
             #
             #   return new token for user
             #
-            $queryStr = "SELECT token, email, password FROM active_users WHERE internal_id=$userId";
+            $queryStr = "SELECT token, email, password FROM active_users WHERE internal_id=$userId;";
             $result = $this->db_conn->query($queryStr);
             $row = $result->fetch_row();
             $usertoken = $row[0];

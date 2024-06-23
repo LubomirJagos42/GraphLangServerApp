@@ -64,6 +64,18 @@ class ControllerDefault{
         );
     }
 
+    private function getLoginInfo(){
+        $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
+
+        $loginInfo =	$this->modelLogin->isUserLogged(
+            $this->modelLogin->getCurrentUsername(),
+            "",
+            md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
+        );
+
+        return $loginInfo;
+    }
+
     function doDefaultRouting(){
         $userId = $this->modelLogin->getCurrentUserId();
         $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
@@ -88,13 +100,7 @@ class ControllerDefault{
 	function doGraphLangIDE(){
         $currentUser = $this->modelLogin->getCurrentUserId();
         $currentProject = $this->modelLogin->getCurrentUserProjectId();
-        $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
-
-        $loginInfo =	$this->modelLogin->isUserLogged(
-            $this->modelLogin->getCurrentUsername(),
-            "",
-            md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
-        );
+        $loginInfo = $this->getLoginInfo();
 
         if ($loginInfo['isLogged'] == 1 && $currentProject > -1){
             $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
@@ -116,7 +122,32 @@ class ControllerDefault{
         }
 	}
 
-	function doNotFound(){
+    function doGraphLangShapeDesigner(){
+        $currentUser = $this->modelLogin->getCurrentUserId();
+        $currentProject = $this->modelLogin->getCurrentUserProjectId();
+        $loginInfo = $this->getLoginInfo();
+
+        if ($loginInfo['isLogged'] == 1 && $currentProject > -1){
+            $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
+            $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
+            $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
+
+            $ideVersion = $this->modelProject->getProjectVersion($currentProject);
+            $htmlIncludeDirPrefix = $this->modelDirectory->getEnvironmentRootDir($ideVersion);
+            if ($ideVersion != ""){
+                include($htmlIncludeDirPrefix ."/GraphLang_ShapeDesigner/index.php");
+            }else{
+                include("ViewNotFound.php");
+            }
+
+        }else if ($loginInfo['isLogged'] == 1 && $currentProject == -1) {
+            $this->doNotFound();
+        }else{
+            $this->doUserLoginForm();
+        }
+    }
+
+    function doNotFound(){
 		include("ViewNotFound.php");
 	}
 	
@@ -242,7 +273,7 @@ class ControllerDefault{
 		echo($outputStr);
 	}
 	
-	function doExperimentGetJavascriptForNodes(){
+	function doGetJavascriptForNodes(){
         $loginInfo = $this->getCurrentUserLoginVariables();
         $username = $loginInfo['username'];
         $password = $loginInfo['password'];
@@ -278,7 +309,16 @@ class ControllerDefault{
                 $this->modelLogin->getCurrentUserId(),
                 $this->modelLogin->getCurrentUserProjectId()
             );
-            print_r($nodesNamesWithCategories);
+
+            echo("<table border='1px'>\n");
+            foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
+                echo("<tr><td><b>CATEGORY: ". ($categoryName == "0" ? "others" : $categoryName) ."</b></td><td></td></tr>\n");
+                foreach($categoryNodes as $node){
+                    echo("<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$node[1]</td><td>$node[0]</td></tr>\n");
+                }
+            }
+            echo("</table>\n");
+
         }else{
             echo("user not logged!<br /><br />\n");
             echo("<a href='?'>Home</a>");
@@ -347,13 +387,7 @@ class ControllerDefault{
 
     function doCreateProject(){
         $currentUser = $this->modelLogin->getCurrentUserId();
-        $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
-
-        $loginInfo = $this->modelLogin->isUserLogged(
-            $this->modelLogin->getCurrentUsername(),
-            "",
-            md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
-        );
+        $loginInfo = $this->getLoginInfo();
 
         if ($loginInfo['isLogged'] == 1){
 
@@ -372,15 +406,6 @@ class ControllerDefault{
                     $projectImageEncoded = "data:$imageType;base64,". base64_encode($projectImage);
                 }
 
-//                echo($projectName."<br />\n");
-//                echo($projectDescription."<br />\n");
-//                echo($projectVisibility."<br />\n");
-//                echo("<img src='$projectImageEncoded' /><br />\n");
-//                echo($projectCodeTemplate."<br />\n");
-//                echo($projectLanguage."<br />\n");
-//                echo($projectIdeVersion."<br />\n");
-
-
                 $result = $this->modelProject->createProject(
                     $currentUser,
                     $projectName,
@@ -394,7 +419,7 @@ class ControllerDefault{
 
                 echo("project create result: $result<br />\n");
                 echo("<br />\n");
-                echo("<a href='?q=home'>Home</a><br />\n");
+                echo("<a href='?q=userProjectList'>Back to project list</a><br />\n");
 
             }else{
                 include("ViewCreateProject.php");
@@ -406,20 +431,86 @@ class ControllerDefault{
     }
 
     function doIsUserLogged(){
-        $userId = $this->modelLogin->getCurrentUserId();
-        $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
-        $projectId = $this->modelLogin->getCurrentUserProjectId();
-
-        $loginInfo = $this->modelLogin->isUserLogged(
-            $this->modelLogin->getCurrentUsername(),
-            "",
-            md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
-        );
+        $loginInfo = $this->getLoginInfo();
 
         $isLogged = $loginInfo["isLogged"];
         $token = $loginInfo['token'];
         echo("{\"isLogged\":$isLogged, \"token\":\"$token\"}");
     }
 
+    function doDownloadIde(){
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1){
+            $currentUser = $this->modelLogin->getCurrentUserProjectId();
+            $currentProject = $this->modelLogin->getCurrentUserProjectId();
+
+            $rootDir = "_temp";
+            $fileBaseName = "GraphLangIDE_user_".$currentUser."_project_".$currentProject;
+            $tempDir = $rootDir.DIRECTORY_SEPARATOR.$fileBaseName;
+            $zipFileName = $rootDir.DIRECTORY_SEPARATOR.$fileBaseName.".zip";
+            $file_url = "/GraphLangServerApp/_temp/".$fileBaseName.".zip";
+
+            //remove all previous files for this user to not fill temp directory if called too many times
+            foreach (glob($rootDir.DIRECTORY_SEPARATOR."*_user_$currentUser_*") as $filename) unlink($filename);
+
+            @mkdir($rootDir);   //just to be sue there will be temporary dir created, if already exists this do nothing, warnings are supressed
+            @$this->modelDirectory->recurseRmdir($tempDir);
+            @mkdir($tempDir);
+
+            echo("temp dir created: $tempDir<br/>\n");
+
+            $environmentDir = $this->modelDirectory->getEnvironmentRootDir($this->modelProject->getProjectVersion($currentProject));
+
+            $this->modelDirectory->recursive_copy(
+                $environmentDir,
+                $tempDir,
+                array(
+                    "/^\..*$/",               //exclude dirs starts with '.' (they are hidden)
+                    "/^__pycache__$/",        //exclude dirs __pycache__
+                    "/^_temp$/",              //exclude dirs _temp
+                    "/^LibraryBlocks$/"       //exclude LibraryBlocks which is from original IDE when working on local PC from local drive
+                ),
+                array(
+                    "/^.*\.php$/",            //exclude all .php files
+                    "/^\..*$/"                //exclude files which starts with '.' (that are hidden files), this to remove files like .gitignore, .idea and so
+                )
+            );
+            echo("files copied<br/>\n");
+            echo("starts packing dir to .zip<br/>\n");
+
+            $this->modelDirectory->zipDir(
+                $tempDir,
+                $zipFileName
+            );
+            echo(".zip created<br />\n");
+
+            @$this->modelDirectory->recurseRmdir($tempDir);
+            echo("temp dir removed<br />\n");
+
+            header('Content-Type: application/octet-stream');
+            header("Content-Transfer-Encoding: Binary");
+            header("Content-disposition: attachment; filename=\"" . basename($file_url) . "\"");
+            readfile($file_url);
+        }
+    }
+
+    function doDeleteProject(){
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1){
+            $userId = $this->modelLogin->getCurrentUserId();
+            $projectId = $this->modelLogin->getCurrentUserProjectId();
+            $result = $this->modelProject->deleteProject($userId, $projectId);
+
+            echo("<h2>Delete project id:$projectId result</h2>\n");
+            echo("<table>\n");
+            foreach ($result as $key => $value){
+                echo("<tr><td>delete items in table $key</td><td>$value</td></tr>\n");
+            }
+            echo("</table>\n");
+            echo("<br /><br /><a href='?q=userProjectList'>Back to project list</a>\n");
+        }else{
+            $this->doUserLoginForm();
+        }
+    }
 }
 ?>

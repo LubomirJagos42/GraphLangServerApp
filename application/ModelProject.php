@@ -35,5 +35,38 @@ class ModelProject
         return $result;
     }
 
+    function deleteProject($userOwner, $projectId){
+        $projectId = (int) $projectId;
+
+        $resultStatus = array();
+
+        $queryStr = "";
+        $queryStr .= "DELETE FROM user_projects WHERE internal_id=$projectId AND project_owner=$userOwner;";
+        $result = $this->db_conn->query($queryStr);
+        $resultStatus["user_projects"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");
+
+        $queryStr = "";
+        $queryStr .= "DELETE FROM project_categories WHERE project_id=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        $resultStatus["project_categories"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");
+
+        $queryStr = "";
+        $queryStr .= "DELETE FROM nodes_to_category_assignment WHERE project_id=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        $resultStatus["nodes_to_category_assignment"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");
+
+        $queryStr = "";
+        $queryStr .= "DELETE FROM media_to_project_assignment WHERE project_id=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        $resultStatus["media_to_project_assignment"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");
+
+        $queryStr = "";
+        $queryStr .= "DELETE FROM storage_schematic_blocks WHERE node_project=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        $resultStatus["storage_schematic_blocks"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");
+
+        return $resultStatus;
+    }
+
 }
 ?>

@@ -22,6 +22,8 @@ include_once("application/ControllerDefault.php");
 		$controller->doDefaultRouting();
 	}else if($q == "ide"){
 		$controller->doGraphLangIDE();	
+	}else if($q == "shapeDesigner"){
+		$controller->doGraphLangShapeDesigner();
 	}else if($q == "loadNodesFromServer"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doLoadNodesFromServer();	
@@ -30,9 +32,9 @@ include_once("application/ControllerDefault.php");
 		$controller->doUploadNodesToServer();	
 	}else if($q == "getOrderedNodes"){
 		$controller->doGetOrderedNodes();
-	}else if($q == "experimentGetJavascriptForNodes"){
+	}else if($q == "getJavascriptForNodes"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
-		$controller->doExperimentGetJavascriptForNodes();
+		$controller->doGetJavascriptForNodes();
 	}else if($q == "doExperimentDebug"){
 		$controller->doExperimentDebug();
 	}else if($q == "userLogin"){
@@ -49,6 +51,10 @@ include_once("application/ControllerDefault.php");
 	}else if($q == "isUserLogged"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doIsUserLogged();
+	}else if($q == "downloadIde"){
+		$controller->doDownloadIde();
+	}else if($q == "deleteProject"){
+		$controller->doDeleteProject();
 	}else{
 		$controller->doNotFound();			
 	}
