@@ -547,5 +547,20 @@ class ControllerDefault{
         }
     }
 
+    function doReplaceNodeSchematicJsonDocument(){
+        $loginInfo = $this->getLoginInfo();
+        if ($oginInfo["isLogged"] == 1){
+            $userOwner = $this->modelLogin->getCurrentUserId();
+            $projectId = isset($_GET["projectId"]) ? $_GET["projectId"] : "";
+            $nodeClassName = isset($_GET["nodeClassName"]) ? $_GET["nodeClassName"] : "";
+            $newNodeClassContent = isset($_POST["nodeClassContent"]) ? $_POST["nodeClassContent"] : "";
+
+            $result = $this->modelSchematicNodes->replaceNodeSchematicJsonDocument($userOwner, $projectId, $nodeClassName, $newNodeClassContent, true);
+            echo('{"error": "OK", "numberOfUpdatedRows": "'.$result.'"}');
+        }else{
+            echo('{"error": "User not logged!", "numberOfUpdatedRows": "0"}');
+        }
+    }
+
 }
 ?>

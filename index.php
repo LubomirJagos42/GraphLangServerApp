@@ -38,6 +38,9 @@ include_once("application/ControllerDefault.php");
 	}else if($q == "updateNodeJavascriptCode"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doUpdateNodeJavascriptCode();
+	}else if($q == "replaceNodeSchematicJsonDocument"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doReplaceNodeSchematicJsonDocument();
 	}else if($q == "getJavascriptForNodes"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doGetJavascriptForNodes();

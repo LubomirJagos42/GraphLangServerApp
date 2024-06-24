@@ -441,5 +441,26 @@ class ModelSchematicNodes{
 
         return $this->db_conn->affected_rows;
     }
+
+    function replaceNodeSchematicJsonDocument($userOwner, $projectId, $nodeClassName, $nodeClassContent, $hexFormat = false){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
+        $queryStr = "SELECT node_class_content FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+        $result = $this->db_conn->query($queryStr);
+
+        $row = $result->fetch_row();
+        $oldNodeClassContent = $row[0];
+        $newNodeClassContent = preg_replace('/jsonDocument:[\sA-Za-z0-9\n\[\]\{\}\"\:\.\,\-_#\\\/]*\],/', $nodeClassContent, $oldNodeClassContent);
+
+        if ($hexFormat){
+            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code=UNHEX('$newNodeClassContent') WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+        }else{
+            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code='$newNodeClassContent' WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+        }
+        $result = $this->db_conn->query($queryStr);
+
+        return $this->db_conn->affected_rows;
+    }
 }
 ?>
