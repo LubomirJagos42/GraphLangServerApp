@@ -297,9 +297,12 @@ class ModelSchematicNodes{
         $queryStr = "";
 
         $queryStr .= "SELECT";
+        $queryStr .= "    project_categories.internal_id,";
         $queryStr .= "    project_categories.category_name,";
+        $queryStr .= "    storage_schematic_blocks.internal_id,";
         $queryStr .= "    storage_schematic_blocks.node_class_name,";
-        $queryStr .= "    storage_schematic_blocks.node_display_name";
+        $queryStr .= "    storage_schematic_blocks.node_display_name,";
+        $queryStr .= "    REGEXP_REPLACE(REGEXP_SUBSTR(storage_schematic_blocks.node_content_code, 'symbolPicture: \"(.*)\"'), '.*\"(.*)\".*', '\\\\1') as node_image_base64";
         $queryStr .= " FROM `storage_schematic_blocks`";
         $queryStr .= " LEFT JOIN nodes_to_category_assignment";
         $queryStr .= " ON";
@@ -322,10 +325,18 @@ class ModelSchematicNodes{
         $nodesByCategories = array();
         $nodesByCategories[0] = array();    #default category for nodes with no category
         while ($row = $result->fetch_row()){
-            $categoryName = $row[0] ? $row[0] : 0;
+            $categoryName = $row[1] ? $row[1] : 0;
             if (!array_key_exists($categoryName, $nodesByCategories)) $nodesByCategories[$categoryName] = array();
-            array_push($nodesByCategories[$categoryName], array($row[1], $row[2]));
+            array_push($nodesByCategories[$categoryName], array(
+                "categoryId" => $row[0],
+                "id" => $row[2],
+                "className" => $row[3],
+                "displayName" => $row[4],
+                "image" => $row[5]
+            ));
         }
+
+        //TODO: Need to add also categories which has no nodes assigned but are assigned to project since now they are not in listing
 
         return $nodesByCategories;
     }
@@ -462,5 +473,37 @@ class ModelSchematicNodes{
 
         return $this->db_conn->affected_rows;
     }
+
+    function deleteNodeFromCategory($userOwner, $projectId, $categoryId, $nodeId){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+        $categoryId = (int) ($categoryId ? $categoryId : -1);
+        $nodeId = (int) $nodeId;
+
+        $queryStr = "DELETE FROM nodes_to_category_assignment WHERE category_id=$categoryId AND node_id=$nodeId AND project_id=$projectId AND $userOwner IN (SELECT node_owner FROM storage_schematic_blocks WHERE internal_id=$nodeId);";
+        $result = $this->db_conn->query($queryStr);
+
+        $outputArray = array();
+        if ($this->db_conn->affected_rows > 0){
+            $outputArray["error"] = false;
+            $outputArray["errorMessage"] = str_replace('"','\"',$this->db_conn->error);
+            $outputArray["affected_rows"] = $this->db_conn->affected_rows;
+        }else{
+            $outputArray["error"] = true;
+            if ($this->db_conn->error){
+                $outputArray["errorMessage"] = str_replace('"','\"',$this->db_conn->error);
+            }else{
+                $errorMsg = "No deletion for project: $projectId, category: $categoryId, node: $nodeId\\n";
+                if ($categoryId < 0) $errorMsg .= "Category ID not defined.\\n";
+                if ($nodeId < 0) $errorMsg .= "Node ID not defined.\\n";
+                if ($projectId < 0) $errorMsg .= "Project ID not defined.\\n";
+                $outputArray["errorMessage"] = $errorMsg;
+            }
+            $outputArray["affected_rows"] = $this->db_conn->affected_rows;
+        }
+
+        return $outputArray;
+    }
+
 }
 ?>

@@ -254,17 +254,28 @@ class ControllerDefault{
 		
 		$outputStr = "";
 		if (count($orderedNodesArray)) {
-            $outputStr .= "<table>\n";
+            $outputStr .= "<html>\n";
+            $outputStr .= "\t\t<head>\n";
+            $outputStr .= "\t\t\t\t<style type='text/css'>\n";
+            $outputStr .= "\t\t\t\t\t\ttable{border-collapse: collapse; border: 1px solid black;}\n";
+            $outputStr .= "\t\t\t\t\t\ttable td{padding: 5px; border-collapse: collapse; border: 1px solid black;}\n";
+            $outputStr .= "\t\t\t\t</style>\n";
+            $outputStr .= "\t\t</head>\n";
+            $outputStr .= "\t\t<body>\n";
+            $outputStr .= "\t\t<a href='?q=userProjectList'>Back to project list</a><br /><br />\n";
+            $outputStr .= "\t\t<table>\n";
             for ($k = 0; $k < count($orderedNodesArray); $k++) {
-                $outputStr .= "<tr>";
-                $outputStr .= "<td>" . $orderedNodesArray[$k]['node_directory'] . "</td>\n";
-                $outputStr .= "<td>" . $orderedNodesArray[$k]['node_display_name'] . "</td>\n";
-                $outputStr .= "<td>" . $orderedNodesArray[$k]['node_class_name'] . "</td>\n";
-                $outputStr .= "<td>" . $orderedNodesArray[$k]['node_class_parent'] . "</td>\n";
-                $outputStr .= "<td>" . $orderedNodesArray[$k]['internal_id'] . "</td>\n";
-                $outputStr .= "</tr>\n";
+                $outputStr .= "\t\t\t\t<tr>\n";
+                $outputStr .= "\t\t\t\t\t\t<td>" . $orderedNodesArray[$k]['node_directory'] . "</td>\n";
+                $outputStr .= "\t\t\t\t\t\t<td>" . $orderedNodesArray[$k]['node_display_name'] . "</td>\n";
+                $outputStr .= "\t\t\t\t\t\t<td>" . $orderedNodesArray[$k]['node_class_name'] . "</td>\n";
+                $outputStr .= "\t\t\t\t\t\t<td>" . $orderedNodesArray[$k]['node_class_parent'] . "</td>\n";
+                $outputStr .= "\t\t\t\t\t\t<td>" . $orderedNodesArray[$k]['internal_id'] . "</td>\n";
+                $outputStr .= "\t\t\t\t</tr>\n";
             }
-            $outputStr .= "</table>\n";
+            $outputStr .= "\t\t</table>\n";
+            $outputStr .= "\t\t</body>\n";
+            $outputStr .= "\t\t</html>\n";
         }else{
             $outputStr .= "No ordered nodes found!\n";
             $outputStr .= "<br /><br /><a href='?q=userProjectList'>Back to project list</a>\n";
@@ -291,7 +302,7 @@ class ControllerDefault{
         }
 	}
 
-    function doExperimentDebug(){
+    function doProjectCategoriesNodesEditor(){
         $loginInfo = $this->getCurrentUserLoginVariables();
         $username = $loginInfo['username'];
         $password = $loginInfo['password'];
@@ -305,20 +316,17 @@ class ControllerDefault{
         #
         $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
         if ($loginInfo['isLogged'] == 1) {
+            $currentUserId = $this->modelLogin->getCurrentUserId();
+            $currentProjectId = $this->modelLogin->getCurrentUserProjectId();
+
             $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories(
-                $this->modelLogin->getCurrentUserId(),
-                $this->modelLogin->getCurrentUserProjectId()
+                $currentUserId,
+                $currentProjectId
             );
+            $viewType = isset($_GET["viewType"]) ? $_GET["viewType"] : null;
 
-            echo("<table border='1px'>\n");
-            foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
-                echo("<tr><td><b>CATEGORY: ". ($categoryName == "0" ? "others" : $categoryName) ."</b></td><td></td></tr>\n");
-                foreach($categoryNodes as $node){
-                    echo("<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$node[1]</td><td>$node[0]</td></tr>\n");
-                }
-            }
-            echo("</table>\n");
-
+            if ($viewType == "1") include("ViewProjectCategories_2.php");
+            else include("ViewProjectCategories_1.php");
         }else{
             echo("user not logged!<br /><br />\n");
             echo("<a href='?'>Home</a>");
@@ -549,7 +557,7 @@ class ControllerDefault{
 
     function doReplaceNodeSchematicJsonDocument(){
         $loginInfo = $this->getLoginInfo();
-        if ($oginInfo["isLogged"] == 1){
+        if ($loginInfo["isLogged"] == 1){
             $userOwner = $this->modelLogin->getCurrentUserId();
             $projectId = isset($_GET["projectId"]) ? $_GET["projectId"] : "";
             $nodeClassName = isset($_GET["nodeClassName"]) ? $_GET["nodeClassName"] : "";
@@ -560,6 +568,34 @@ class ControllerDefault{
         }else{
             echo('{"error": "User not logged!", "numberOfUpdatedRows": "0"}');
         }
+    }
+
+    function doCategoryOperation(){
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1){
+            $userOwner = $this->modelLogin->getCurrentUserId();
+            $projectId = $this->modelLogin->getCurrentUserProjectId();
+
+            $operation = isset($_POST['operation']) ? $_POST['operation'] : "";
+            $categoryId = isset($_POST['categoryId']) ? $_POST['categoryId'] : -1;
+            $nodeId = isset($_POST['nodeId']) ? $_POST['nodeId'] : -1;
+
+            $categoryId = $categoryId ? $categoryId : -1;
+            $nodeId = $nodeId ? $nodeId : -1;
+
+            $result = array();
+            if ($operation == "delete") $result = $this->modelSchematicNodes->deleteNodeFromCategory($userOwner, $projectId, $categoryId, $nodeId);
+            else{
+                $result["error"] = true;
+                $result["errorMessage"] = "category operation not recognized";
+                $result["affected_rows"] = 0;
+            }
+
+            echo('{"error": '.($result['error'] ? "true" : "false").', "errorMessage": "'.$result['errorMessage'].'", "operation": "'.$operation.'", "categoryId": '.$categoryId.', "nodeId": '.$nodeId.', "numberOfUpdatedRows": "'.$result['affected_rows'].'"}');
+        }else{
+            echo('{"error": true, "errorMessage": "User not logged!", "operation": null, "categoryId": null, "nodeId": null, "numberOfUpdatedRows": "0"}');
+        }
+
     }
 
 }

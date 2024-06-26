@@ -52,8 +52,8 @@
                 <td><a href="?q=downloadIde&projectId=<?php echo($projectItem["id"]); ?>">download</a></td>
                 <td><a href="?q=shapeDesigner&projectId=<?php echo($projectItem["id"]); ?>">shape designer</a></td>
                 <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                <td><a href="?q=getJavascriptForNodes&projectId=<?php echo($projectItem["id"]); ?>">JS nodes</a></td>
-                <td><a href="?q=doExperimentDebug&projectId=<?php echo($projectItem["id"]); ?>">categories and nodes list</a></td>
+                <td><a href="?q=getJavascriptForNodes&projectId=<?php echo($projectItem["id"]); ?>">JS for IDE</a></td>
+                <td><a href="?q=projectCategoriesNodesEditor&projectId=<?php echo($projectItem["id"]); ?>">categories editor</a></td>
             </tr>
         <?php
         }

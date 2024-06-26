@@ -44,8 +44,8 @@ include_once("application/ControllerDefault.php");
 	}else if($q == "getJavascriptForNodes"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doGetJavascriptForNodes();
-	}else if($q == "doExperimentDebug"){
-		$controller->doExperimentDebug();
+	}else if($q == "projectCategoriesNodesEditor"){
+		$controller->doProjectCategoriesNodesEditor();
 	}else if($q == "userLogin"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doUserLogin();
@@ -64,6 +64,9 @@ include_once("application/ControllerDefault.php");
 		$controller->doDownloadIde();
 	}else if($q == "deleteProject"){
 		$controller->doDeleteProject();
+	}else if($q == "categoryOperation"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doCategoryOperation();
 	}else{
 		$controller->doNotFound();			
 	}
