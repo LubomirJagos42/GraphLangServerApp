@@ -336,9 +336,26 @@ class ModelSchematicNodes{
             ));
         }
 
-        //TODO: Need to add also categories which has no nodes assigned but are assigned to project since now they are not in listing
-
         return $nodesByCategories;
+    }
+
+    function getEmptyCategoriesForProject($projectId){
+        $queryStr = "";
+        $queryStr .= "SELECT internal_id, category_name";
+        $queryStr .= " FROM project_categories";
+        $queryStr .= " WHERE project_id=$projectId AND internal_id NOT IN (SELECT category_id FROM nodes_to_category_assignment WHERE project_id=$projectId)";
+
+        $result = $this->db_conn->query($queryStr);
+
+        $emptyCategories = array();
+        while ($row = $result->fetch_assoc()){
+            array_push($emptyCategories, array(
+                "id" => $row['internal_id'],
+                "name" => $row['category_name']
+            ));
+        }
+
+        return $emptyCategories;
     }
 
     function getUserProjectList($userOwner){

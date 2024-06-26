@@ -16,6 +16,10 @@
 	</head>
 	<body>
         <h1>User project list</h1>
+        <a href="?q=userProjectList">NORMAL mode</a>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <a href="?q=userProjectList&debugMode=1">DEBUG mode</a>
+        <br /><br />
 		<table>
             <tr>
                 <td>ID</td>
@@ -30,9 +34,11 @@
                 <td></td>
                 <td></td>
                 <td></td>
+                <?php if ($debugMode){ ?>
                 <td></td>
                 <td></td>
                 <td></td>
+                <?php } ?>
             </tr>
 
         <?php
@@ -48,12 +54,12 @@
                 <td><?php echo($projectItem["codeTemplate"]); ?></td>
                 <td><a href="?q=ide&projectId=<?php echo($projectItem["id"]); ?>">open</a></td>
                 <td><a href="?q=deleteProject&projectId=<?php echo($projectItem["id"]); ?>">delete</a></td>
-                <td><a href="?q=getOrderedNodes&projectId=<?php echo($projectItem["id"]); ?>">nodes list</a></td>
+                <td><a href="?q=projectCategoriesNodesEditor&projectId=<?php echo($projectItem["id"]); ?>">categories editor</a></td>
                 <td><a href="?q=downloadIde&projectId=<?php echo($projectItem["id"]); ?>">download</a></td>
                 <td><a href="?q=shapeDesigner&projectId=<?php echo($projectItem["id"]); ?>">shape designer</a></td>
-                <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                <td><a href="?q=getJavascriptForNodes&projectId=<?php echo($projectItem["id"]); ?>">JS for IDE</a></td>
-                <td><a href="?q=projectCategoriesNodesEditor&projectId=<?php echo($projectItem["id"]); ?>">categories editor</a></td>
+                <?php if ($debugMode){ ?><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><?php } ?>
+                <?php if ($debugMode){ ?><td><a href="?q=getOrderedNodes&projectId=<?php echo($projectItem["id"]); ?>">nodes list</a></td><?php } ?>
+                <?php if ($debugMode){ ?><td><a href="?q=getJavascriptForNodes&projectId=<?php echo($projectItem["id"]); ?>">JS for IDE</a></td><?php } ?>
             </tr>
         <?php
         }

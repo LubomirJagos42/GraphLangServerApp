@@ -105,6 +105,7 @@ class ControllerDefault{
         if ($loginInfo['isLogged'] == 1 && $currentProject > -1){
             $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
             $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
+            $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProject);
             $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
 
             $ideVersion = $this->modelProject->getProjectVersion($currentProject);
@@ -323,6 +324,7 @@ class ControllerDefault{
                 $currentUserId,
                 $currentProjectId
             );
+            $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProjectId);
             $viewType = isset($_GET["viewType"]) ? $_GET["viewType"] : null;
 
             if ($viewType == "1") include("ViewProjectCategories_2.php");
@@ -384,6 +386,8 @@ class ControllerDefault{
         );
 
         if ($loginInfo['isLogged'] == 1){
+            $debugMode = isset($_GET['debugMode']) ? $_GET['debugMode'] : 0;
+
             $projectList = $this->modelSchematicNodes->getUserProjectList($currentUser);
             $othersProjectList = $this->modelSchematicNodes->getOthersPublicProjects($currentUser);
 

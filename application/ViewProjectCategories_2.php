@@ -30,6 +30,10 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
     }
     echo("</div>");
 }
+
+foreach ($emptyCategories as $category){
+    echo("<h2 style='background: none; float: left; width: 100%'>CATEGORY: ". ($category['name'] == "0" ? "others" : $category['name']) ."</h2>\n");
+}
 ?>
 
     </body>
