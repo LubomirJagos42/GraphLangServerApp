@@ -57,6 +57,8 @@ include_once("application/ControllerDefault.php");
 		$controller->doUserProjectList();
 	}else if($q == "createProject"){
 		$controller->doCreateProject();
+	}else if($q == "updateProjectDetails"){
+		$controller->doUpdateProjectDetails();
 	}else if($q == "isUserLogged"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doIsUserLogged();

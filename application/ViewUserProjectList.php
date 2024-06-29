@@ -34,6 +34,7 @@
                 <td></td>
                 <td></td>
                 <td></td>
+                <td></td>
                 <?php if ($debugMode){ ?>
                 <td></td>
                 <td></td>
@@ -52,6 +53,7 @@
                 <td><img width="100px" src="<?php echo($projectItem["image"]); ?>" /></td>
                 <td><?php echo($projectItem["visibility"]); ?></td>
                 <td><?php echo($projectItem["codeTemplate"]); ?></td>
+                <td><a href="?q=updateProjectDetails&projectId=<?php echo($projectItem["id"]); ?>">change details</a></td>
                 <td><a href="?q=ide&projectId=<?php echo($projectItem["id"]); ?>">open</a></td>
                 <td><a href="?q=deleteProject&projectId=<?php echo($projectItem["id"]); ?>">delete</a></td>
                 <td><a href="?q=projectCategoriesNodesEditor&projectId=<?php echo($projectItem["id"]); ?>">categories editor</a></td>

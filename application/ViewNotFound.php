@@ -19,7 +19,6 @@
         Need to be implemented:
         <ul>
             <li><a href="">Register user</a><br /></li>
-            <li><a href="">Update project details</a><br /></li>
         </ul>
 
         Development stuff:

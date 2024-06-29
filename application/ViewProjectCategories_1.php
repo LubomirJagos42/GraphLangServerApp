@@ -375,7 +375,7 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
                 <input name="category_name" type="hidden" value="<?= $categoryName ?>"/>
             <?php } ?>
         </td>
-        <td><?= $categoryNodes[0]['categoryId'] ?></td>
+        <td><?= ($categoryName == "0" ? "" : $categoryNodes[0]['categoryId']) ?></td>
         <td></td>
         <td></td>
     </tr>

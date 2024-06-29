@@ -7,30 +7,30 @@
 	<body>
         <h1>Create project</h1>
 
-        <form id="createProjectForm" name="createProjectForm" method="post" enctype="multipart/form-data">
+        <form id="createProjectForm" name="createProjectForm" method="post" enctype="multipart/form-data" action="?q=<?= isset($projectUpdate) ? "updateProjectDetails&projectId=$currentProject&doUpdate=1" : "createProject" ?>">
             <table>
                 <tr>
                     <td>Project name:</td>
-                    <td><input name="name" type="text"/></td>
+                    <td><input name="name" type="text" value="<?= $projectName ?>" /></td>
                 </tr>
                 <tr>
                     <td>IDE version:</td>
                     <td>
                         <select name="ideVersion">
-                            <option value="0v1">0v1</option>
+                            <option value="0v1" <?= $projectIdeVersion == "0v1" ? "selected" : "" ?>>0v1</option>
                         </select>
                     </td>
                 </tr>
                 <tr>
                     <td>Description:</td>
-                    <td><input name="description" type="text"/></td>
+                    <td><input name="description" type="text" value="<?= $projectDescription ?>" /></td>
                 </tr>
                 <tr>
                     <td>Visibility:</td>
                     <td>
                         <select name="visibility">
-                            <option value="public">public</option>
-                            <option value="private">private</option>
+                            <option value="public" <?= $projectVisibility == "public" ? "selected" : "" ?>>public</option>
+                            <option value="private" <?= $projectVisibility == "private" ? "selected" : "" ?>>private</option>
                         </select>
                     </td>
                 </tr>
@@ -38,8 +38,8 @@
                     <td>Code template:</td>
                     <td>
                         <select name="codeTemplate">
-                            <option value="arduino">arduino</option>
-                            <option value="desktop">desktop</option>
+                            <option value="arduino" <?= $projectCodeTemplate == "arduino" ? "selected" : "" ?>>arduino</option>
+                            <option value="desktop" <?= $projectCodeTemplate == "desktop" ? "selected" : "" ?>>desktop</option>
                         </select>
                     </td>
                 </tr>
@@ -47,9 +47,9 @@
                     <td>Programming language:</td>
                     <td>
                         <select name="language">
-                            <option value="C/C++">C/C++</option>
-                            <option value="python">python</option>
-                            <option value="javascript">javascript</option>
+                            <option value="C/C++" <?= $projectLanguage == "C/C++" ? "selected" : "" ?>>C/C++</option>
+                            <option value="python" <?= $projectLanguage == "python" ? "selected" : "" ?>>python</option>
+                            <option value="javascript" <?= $projectLanguage == "javascript" ? "selected" : "" ?>>javascript</option>
                         </select>
                     </td>
                 </tr>

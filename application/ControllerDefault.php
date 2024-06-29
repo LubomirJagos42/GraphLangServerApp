@@ -443,6 +443,70 @@ class ControllerDefault{
         }
     }
 
+    function doUpdateProjectDetails(){
+        $currentUser = $this->modelLogin->getCurrentUserId();
+        $currentProject = $this->modelLogin->getCurrentUserProjectId();
+        $loginInfo = $this->getLoginInfo();
+
+        if ($loginInfo['isLogged'] == 1){
+
+            $projectUpdate = isset($_GET['doUpdate']) && $_GET['doUpdate'] == 1 ? true : false;
+
+            if ($projectUpdate == false) {
+                $projectInfo = $this->modelProject->getProject($currentUser, $currentProject);
+
+                $projectName = $projectInfo["project_name"];
+                $projectDescription = $projectInfo["project_description"];
+                $projectVisibility = $projectInfo["project_visibility"];
+                $projectCodeTemplate = $projectInfo["project_code_template"];
+                $projectLanguage = $projectInfo["project_language"];
+                $projectIdeVersion = $projectInfo["project_graphlang_version"];
+                $projectImage = $projectInfo["project_image"];
+            }else{
+                $projectName = isset($_POST["name"]) ? $_POST["name"] : "";
+                $projectDescription = isset($_POST["description"]) ? $_POST["description"] : "";
+                $projectVisibility = isset($_POST["visibility"]) ? $_POST["visibility"] : "";
+                $projectCodeTemplate = isset($_POST["codeTemplate"]) ? $_POST["codeTemplate"] : "";
+                $projectLanguage = isset($_POST["language"]) ? $_POST["language"] : "";
+                $projectIdeVersion = isset($_POST["ideVersion"]) ? $_POST["ideVersion"] : "";
+            }
+
+            if ($projectUpdate){
+                $projectImageEncoded = "";
+                if (isset($_FILES["image"]["tmp_name"]) && $_FILES["image"]["tmp_name"] != "") $check = getimagesize($_FILES["image"]["tmp_name"]);
+                else $check = false;
+                if($check !== false) {
+                    $projectImage = file_get_contents($_FILES["image"]["tmp_name"]);
+                    $imageType = $_FILES["image"]["type"];
+                    $projectImageEncoded = "data:$imageType;base64,". base64_encode($projectImage);
+                }
+
+                $result = $this->modelProject->updateProject(
+                    $currentUser,
+                    $currentProject,
+                    $projectName,
+                    $projectDescription,
+                    $projectImageEncoded,
+                    $projectVisibility,
+                    $projectCodeTemplate,
+                    $projectLanguage,
+                    $projectIdeVersion
+                );
+
+                echo("project UPDATE result: ". $result['status'] ."<br />\n");
+                if ($result["status"] == 0) echo("Error: ". $result['errorMsg'] ."<br />\n");
+                echo("<br />\n");
+                echo("<a href='?q=userProjectList'>Back to project list</a><br />\n");
+
+            }else{
+                include("ViewCreateProject.php");
+            }
+
+        }else{
+            $this->doUserLoginForm();
+        }
+    }
+
     function doIsUserLogged(){
         $loginInfo = $this->getLoginInfo();
 

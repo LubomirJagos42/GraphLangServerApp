@@ -35,6 +35,37 @@ class ModelProject
         return $result;
     }
 
+    function updateProject($userId, $projectId, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion){
+        $outputArray = array("status" => 0, "errorMsg" => "");
+
+        $queryStr = "";
+        $queryStr .= "UPDATE user_projects SET";
+        $queryStr .= " project_name = '$projectName',";
+        $queryStr .= " project_graphlang_version = '$projectIdeVersion',";
+        $queryStr .= " project_visibility = '$projectVisibility',";
+        $queryStr .= " project_image = '$projectImage',";
+        $queryStr .= " project_language = '$projectLanguage',";
+        $queryStr .= " project_description = '$projectDescription',";
+        $queryStr .= " project_code_template = '$projectCodeTemplate'";
+        $queryStr .= " WHERE internal_id=$projectId AND project_owner=$userId;";
+
+        try {
+            $result = $this->db_conn->query($queryStr);
+        }catch (Exception $e){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        if ($this->db_conn->affected_rows == 0){
+            $outputArray["status"] = 0;
+            $outputArray["errorMsg"] = "No rows were changed.<br />\nquery: $queryStr";
+            return $outputArray;
+        }
+
+        $outputArray["status"] = 1;
+        return $outputArray;
+    }
+
     function deleteProject($userOwner, $projectId){
         $projectId = (int) $projectId;
 
@@ -68,5 +99,35 @@ class ModelProject
         return $resultStatus;
     }
 
+    function getProject($userOwner, $projectId){
+        $queryStr = "";
+        $queryStr .= "SELECT project_name, project_graphlang_version, project_visibility, project_image, project_description, project_code_template, project_language";
+        $queryStr .= " FROM user_projects";
+        $queryStr .= " WHERE project_owner=$userOwner AND internal_id=$projectId";
+
+        $outputArray = array("status" => 0, "errorMsg" => "");
+
+        try {
+            $result = $this->db_conn->query($queryStr);
+        }catch (Exception $e){
+            $outputArray["status"] = 0;
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        if($result){
+            $row = $result->fetch_assoc();
+            $outputArray["status"] = 1;
+            $outputArray["project_name"] = $row["project_name"];
+            $outputArray["project_graphlang_version"] = $row["project_graphlang_version"];
+            $outputArray["project_visibility"] = $row["project_visibility"];
+            $outputArray["project_image"] = $row["project_image"];
+            $outputArray["project_description"] = $row["project_description"];
+            $outputArray["project_code_template"] = $row["project_code_template"];
+            $outputArray["project_language"] = $row["project_language"];
+        }
+
+        return $outputArray;
+    }
 }
 ?>
