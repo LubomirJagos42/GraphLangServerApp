@@ -325,6 +325,7 @@ class ControllerDefault{
                 $currentProjectId
             );
             $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProjectId);
+            $categoriesIdNamesList = $this->modelSchematicNodes->getAllProjectCategories($currentProjectId);
             $viewType = isset($_GET["viewType"]) ? $_GET["viewType"] : null;
 
             if ($viewType == "1") include("ViewProjectCategories_2.php");
@@ -575,29 +576,66 @@ class ControllerDefault{
     }
 
     function doCategoryOperation(){
+        $result = array("status" => 0, "errorMsg" => "unknown error");
+
         $loginInfo = $this->getLoginInfo();
         if ($loginInfo["isLogged"] == 1){
+            /*
+             *  Get current logged user information.
+             */
             $userOwner = $this->modelLogin->getCurrentUserId();
             $projectId = $this->modelLogin->getCurrentUserProjectId();
 
+            /*
+             *  Get parameters for category operation.
+             */
             $operation = isset($_POST['operation']) ? $_POST['operation'] : "";
             $categoryId = isset($_POST['categoryId']) ? $_POST['categoryId'] : -1;
             $nodeId = isset($_POST['nodeId']) ? $_POST['nodeId'] : -1;
+            $categoryName = isset($_POST['categoryName']) ? $_POST['categoryName'] : "Name Unknown";
 
             $categoryId = $categoryId ? $categoryId : -1;
             $nodeId = $nodeId ? $nodeId : -1;
 
-            $result = array();
-            if ($operation == "delete") $result = $this->modelSchematicNodes->deleteNodeFromCategory($userOwner, $projectId, $categoryId, $nodeId);
-            else{
-                $result["error"] = true;
-                $result["errorMessage"] = "category operation not recognized";
-                $result["affected_rows"] = 0;
+            /*
+             *  Check conditions if user is owner of category or project before doing operations over DB to really do that stuff.
+             */
+            //CHECK - user is owner of category for these operations
+            if (in_array($operation, array("deleteNodeFromCategory","deleteCategory","renameCategory"))){
+                if ($this->modelSchematicNodes->isUserOwnerOfCategory($userOwner, $categoryId) == false){
+                    $result["errorMsg"] = "User $userOwner is not owner of category $categoryName";
+                    return $result;
+                }
+            }
+            //CHECK - user is owner of project for these operations
+            if (in_array($operation, array("addCategory"))){
+                if ($this->modelSchematicNodes->isUserOwnerOfProject($userOwner, $projectId) == false){
+                    $result["errorMsg"] = "User $userOwner is not owner of project $projectId, category $categoryId cannot be renamed to '$categoryName'";
+                    return $result;
+                }
             }
 
-            echo('{"error": '.($result['error'] ? "true" : "false").', "errorMessage": "'.$result['errorMessage'].'", "operation": "'.$operation.'", "categoryId": '.$categoryId.', "nodeId": '.$nodeId.', "numberOfUpdatedRows": "'.$result['affected_rows'].'"}');
+            /*
+             *  User is allowed to do operation, here it's performed.
+             */
+            if ($operation == "deleteNodeFromCategory"){
+                $result = $this->modelSchematicNodes->deleteNodeFromCategory($nodeId, $categoryId);
+            }else if ($operation == "addNodeToCategory"){
+                $result = $this->modelSchematicNodes->addNodeToCategory($nodeId, $projectId, $categoryId);
+            }else if ($operation == "deleteCategory"){
+                $result = $this->modelSchematicNodes->deleteCategory($categoryId);
+            }else if ($operation == "addCategory"){
+                $result = $this->modelSchematicNodes->addCategory($projectId, $categoryName);
+            }else if ($operation == "renameCategory"){
+                $result = $this->modelSchematicNodes->renameCategory($categoryId, $categoryName);
+            }else{
+                $result["errorMsg"] = "category operation not recognized";
+            }
+
+            echo json_encode($result);
         }else{
-            echo('{"error": true, "errorMessage": "User not logged!", "operation": null, "categoryId": null, "nodeId": null, "numberOfUpdatedRows": "0"}');
+            $result["errorMsg"] = "User not logged!";
+            echo json_encode($result);
         }
 
     }

@@ -297,12 +297,12 @@ class ModelSchematicNodes{
         $queryStr = "";
 
         $queryStr .= "SELECT";
-        $queryStr .= "    project_categories.internal_id,";
-        $queryStr .= "    project_categories.category_name,";
-        $queryStr .= "    storage_schematic_blocks.internal_id,";
-        $queryStr .= "    storage_schematic_blocks.node_class_name,";
-        $queryStr .= "    storage_schematic_blocks.node_display_name,";
-        $queryStr .= "    REGEXP_REPLACE(REGEXP_SUBSTR(storage_schematic_blocks.node_content_code, 'symbolPicture: \"(.*)\"'), '.*\"(.*)\".*', '\\\\1') as node_image_base64";
+        $queryStr .= "    project_categories.internal_id AS categoryId,";
+        $queryStr .= "    project_categories.category_name AS categoryName,";
+        $queryStr .= "    storage_schematic_blocks.internal_id AS nodeId,";
+        $queryStr .= "    storage_schematic_blocks.node_class_name AS nodeClassName,";
+        $queryStr .= "    storage_schematic_blocks.node_display_name AS nodeDisplayName,";
+        $queryStr .= "    REGEXP_REPLACE(REGEXP_SUBSTR(storage_schematic_blocks.node_content_code, 'symbolPicture: \"(.*)\"'), '.*\"(.*)\".*', '\\\\1') as nodeImageBase64";
         $queryStr .= " FROM `storage_schematic_blocks`";
         $queryStr .= " LEFT JOIN nodes_to_category_assignment";
         $queryStr .= " ON";
@@ -324,15 +324,15 @@ class ModelSchematicNodes{
 
         $nodesByCategories = array();
         $nodesByCategories[0] = array();    #default category for nodes with no category
-        while ($row = $result->fetch_row()){
-            $categoryName = $row[1] ? $row[1] : 0;
+        while ($row = $result->fetch_assoc()){
+            $categoryName = $row['categoryName'] ? $row['categoryName'] : 0;
             if (!array_key_exists($categoryName, $nodesByCategories)) $nodesByCategories[$categoryName] = array();
             array_push($nodesByCategories[$categoryName], array(
-                "categoryId" => $row[0],
-                "id" => $row[2],
-                "className" => $row[3],
-                "displayName" => $row[4],
-                "image" => $row[5]
+                "categoryId" => $row['categoryId'],
+                "id" => $row['nodeId'],
+                "className" => $row['nodeClassName'],
+                "displayName" => $row['nodeDisplayName'],
+                "image" => $row['nodeImageBase64']
             ));
         }
 
@@ -356,6 +356,115 @@ class ModelSchematicNodes{
         }
 
         return $emptyCategories;
+    }
+
+    function getAllProjectCategories($projectId){
+        $queryStr = "";
+        $queryStr .= "SELECT internal_id, category_name FROM project_categories WHERE project_id=$projectId;";
+
+        $result = $this->db_conn->query($queryStr);
+
+        $categoriesList = array();
+        while ($row = $result->fetch_assoc()){
+            array_push($categoriesList, array(
+                "id" => $row['internal_id'],
+                "name" => $row['category_name']
+            ));
+        }
+
+        return $categoriesList;
+    }
+
+    function isUserOwnerOfCategory($userId, $categoryId){
+        $queryStr = "";
+        $queryStr = "SELECT COUNT(project_id) FROM project_categories WHERE internal_id=$categoryId AND project_id IN (SELECT internal_id FROM user_projects WHERE project_owner=$userId);";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            echo($this->db_conn->error);
+            return false;
+        }
+
+        $isUserOwnerOfCategory = $result->num_rows > 0;
+
+        return $isUserOwnerOfCategory;
+    }
+
+    function isUserOwnerOfProject($userId, $projectId){
+        $queryStr = "";
+        $queryStr = "SELECT COUNT(internal_id) FROM user_projects WHERE internal_id=$projectId AND project_owner=$userId;";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            echo($this->db_conn->error);
+            return false;
+        }
+
+        $isUserOwnerOfProject = $result->num_rows > 0;
+
+        return $isUserOwnerOfProject;
+    }
+
+    function deleteCategory($categoryId){
+        $queryStr = "";
+        $outputArray = array("status" => 0, "errorMsg" => "unknown error");
+
+        if ($categoryId == ""){
+            $outputArray["errorMsg"] = "category id '$categoryId' is not valid'";
+            return $outputArray;
+        }
+
+        $categoryId = (int) $categoryId;
+
+        $queryStr = "DELETE FROM nodes_to_category_assignment WHERE category_id=$categoryId;";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        $queryStr = "DELETE FROM project_categories WHERE internal_id=$categoryId;";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        $outputArray["status"] = 1;
+        $outputArray["errorMsg"] = "";
+        return $outputArray;
+    }
+
+    function addCategory($projectId, $categoryName){
+        $queryStr = "";
+        $outputArray = array("status" => 0, "errorMsg" => "");
+
+        $queryStr = "INSERT INTO project_categories (category_name, project_id) VALUES ('$categoryName', $projectId)";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        $categoryId = $this->db_conn->insert_id;
+
+        $outputArray["status"] = 1;
+        $outputArray["categoryId"] = $categoryId;
+        $outputArray["categoryName"] = $categoryName;
+        return $outputArray;
+    }
+
+    function renameCategory($categoryId, $categoryName){
+        $queryStr = "";
+        $outputArray = array("status" => 0, "errorMsg" => "");
+
+        $queryStr = "UPDATE project_categories SET category_name='$categoryName' WHERE internal_id=$categoryId;";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        $outputArray["status"] = 1;
+        return $outputArray;
     }
 
     function getUserProjectList($userOwner){
@@ -491,36 +600,53 @@ class ModelSchematicNodes{
         return $this->db_conn->affected_rows;
     }
 
-    function deleteNodeFromCategory($userOwner, $projectId, $categoryId, $nodeId){
-        $userOwner = (int) $userOwner;
-        $projectId = (int) $projectId;
-        $categoryId = (int) ($categoryId ? $categoryId : -1);
+    function deleteNodeFromCategory($nodeId, $categoryId){
+        $categoryId = (int) ($categoryId != "" ? $categoryId : -1);
         $nodeId = (int) $nodeId;
+        $outputArray = array("status" => 0, "errorMsg" => "");
 
-        $queryStr = "DELETE FROM nodes_to_category_assignment WHERE category_id=$categoryId AND node_id=$nodeId AND project_id=$projectId AND $userOwner IN (SELECT node_owner FROM storage_schematic_blocks WHERE internal_id=$nodeId);";
+        $queryStr = "DELETE FROM nodes_to_category_assignment WHERE category_id=$categoryId AND node_id=$nodeId;";
         $result = $this->db_conn->query($queryStr);
-
-        $outputArray = array();
-        if ($this->db_conn->affected_rows > 0){
-            $outputArray["error"] = false;
-            $outputArray["errorMessage"] = str_replace('"','\"',$this->db_conn->error);
-            $outputArray["affected_rows"] = $this->db_conn->affected_rows;
-        }else{
-            $outputArray["error"] = true;
-            if ($this->db_conn->error){
-                $outputArray["errorMessage"] = str_replace('"','\"',$this->db_conn->error);
-            }else{
-                $errorMsg = "No deletion for project: $projectId, category: $categoryId, node: $nodeId\\n";
-                if ($categoryId < 0) $errorMsg .= "Category ID not defined.\\n";
-                if ($nodeId < 0) $errorMsg .= "Node ID not defined.\\n";
-                if ($projectId < 0) $errorMsg .= "Project ID not defined.\\n";
-                $outputArray["errorMessage"] = $errorMsg;
-            }
-            $outputArray["affected_rows"] = $this->db_conn->affected_rows;
+        if ($result == false){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
         }
 
+        $outputArray["status"] = 1;
         return $outputArray;
     }
 
+    function addNodeToCategory($nodeId, $projectId, $categoryId){
+        $categoryId = $categoryId != "" ? (int) $categoryId : -1;
+        $nodeId = (int) $nodeId;
+        $outputArray = array("status" => 0, "errorMsg" => "");
+
+        //check if projectId exists and if node is part of project
+        $queryStr = "SELECT COUNT(internal_id) FROM storage_schematic_blocks WHERE internal_id=$nodeId AND node_project=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }else if( (int)($result->fetch_row())[0] == 0){
+            $outputArray["errorMsg"] = "node $nodeId is not part of project $projectId, therefore cannot be added to project's category $categoryId";
+            return $outputArray;
+        }
+
+        //add node to category
+        try {
+            $queryStr = "INSERT INTO nodes_to_category_assignment (node_id, project_id, category_id) VALUES ($nodeId, $projectId, $categoryId);";
+            $result = $this->db_conn->query($queryStr);
+        }catch (Exception $e){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+        if (!$result){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        $outputArray["status"] = 1;
+        return $outputArray;
+    }
 }
 ?>
