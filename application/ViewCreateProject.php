@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang='en'>
 	<head>
-		<title>Create project</title>
+		<title><?= isset($projectUpdate) ? "Update project" : "Create project" ?></title>
 		<meta charset='utf-8'>
 	</head>
 	<body>
-        <h1>Create project</h1>
+        <h1><?= isset($projectUpdate) ? "Update project" : "Create project" ?></h1>
 
         <form id="createProjectForm" name="createProjectForm" method="post" enctype="multipart/form-data" action="?q=<?= isset($projectUpdate) ? "updateProjectDetails&projectId=$currentProject&doUpdate=1" : "createProject" ?>">
             <table>
@@ -67,6 +67,6 @@
         </form>
 
         <br />
-        <a href="?q=notFound">Home</a>
+        <?= isset($projectUpdate) ? '<a href="?q=userProjectList">Back to project list</a>' : '<a href="?q=home">Home</a>' ?>
 	</body>
 </html>
