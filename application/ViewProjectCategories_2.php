@@ -383,6 +383,8 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
             <div style="background: none; width: 100%; text-align: center;"><?= $node["className"] ?></div>
             <br />
             <div>
+                <a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeClassName=<?= $node['className']?>">edit symbol</a>
+                <br /><br />
                 <input name="copyButton" type="button" value="COPY"/>
                 <select name="add_target_category">
                     <option value="-1"></option>

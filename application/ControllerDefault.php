@@ -134,6 +134,8 @@ class ControllerDefault{
             $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProject);
             $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
 
+            $nodeClassName = isset($_GET['nodeClassName']) ? $_GET['nodeClassName'] : null;
+
             $ideVersion = $this->modelProject->getProjectVersion($currentProject);
             $htmlIncludeDirPrefix = $this->modelDirectory->getShapeDesignerHtmlIncludeDirPrefix($ideVersion);
             if ($ideVersion != ""){
