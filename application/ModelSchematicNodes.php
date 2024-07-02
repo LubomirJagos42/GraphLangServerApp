@@ -648,5 +648,23 @@ class ModelSchematicNodes{
         $outputArray["status"] = 1;
         return $outputArray;
     }
+
+    function getNode($nodeId){
+        $queryStr = "";
+        $queryStr .= "SELECT internal_id, node_display_name, node_class_name, node_class_parent, node_content_code, node_language, node_isHidden, node_directory, node_owner, node_project FROM storage_schematic_blocks WHERE internal_id=$nodeId;";
+        $result = $this->db_conn->query($queryStr);
+        $row = $result->fetch_assoc();
+        return $row;
+    }
+
+    function getProjectHiddenNodes($projectId){
+        $queryStr = "";
+        $queryStr .= "SELECT internal_id, node_display_name, node_class_name, node_class_parent, node_content_code, node_language, node_directory, node_owner, node_project FROM storage_schematic_blocks WHERE node_project=$projectId AND node_isHidden=1;";
+        $result = $this->db_conn->query($queryStr);
+
+        $nodesList = array();
+        while ($row = $result->fetch_assoc()) array_push($nodesList, $row);
+        return $nodesList;
+    }
 }
 ?>

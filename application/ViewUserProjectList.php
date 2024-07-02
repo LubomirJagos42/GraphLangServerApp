@@ -16,6 +16,8 @@
 	</head>
 	<body>
         <h1>User project list</h1>
+        <a href="?q=createProject">Create project</a>
+        &nbsp;&nbsp;&nbsp;&nbsp;
         <a href="?q=userProjectList">NORMAL mode</a>
         &nbsp;&nbsp;&nbsp;&nbsp;
         <a href="?q=userProjectList&debugMode=1">DEBUG mode</a>

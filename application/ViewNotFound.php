@@ -10,6 +10,7 @@
 		You can try:<br/>
 		<ul>
             <li><a href="?q=home">Home</a><br /></li>
+			<li><a href="?q=shapeDesigner&projectId=2">Shape designer, projectId=2</a><br /></li>
 			<li><a href="?q=userProjectList">User project list</a><br /></li>
 			<li><a href="?q=createProject">Create project</a><br /></li>
 			<li><a href="?q=userLoginForm">Login Form</a><br /></li>

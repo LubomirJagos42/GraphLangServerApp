@@ -55,7 +55,10 @@
                 </tr>
                 <tr>
                     <td>Image:</td>
-                    <td><input name="image" type="file"/><br /></td>
+                    <td>
+                        <input name="image" type="file"/><br />
+                        no image: <input name="noImage" type="checkbox" />
+                    </td>
                 </tr>
                 <tr>
                     <td></td>

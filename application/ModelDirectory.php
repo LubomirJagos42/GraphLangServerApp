@@ -15,6 +15,14 @@ class ModelDirectory
         }
     }
 
+    function getShapeDesignerHtmlIncludeDirPrefix($version = ""){
+        if ($version != "") {
+            return "GraphLang/$version/GraphLang_ShapeDesigner";
+        }else{
+            return "GraphLang/default/GraphLang_ShapeDesigner IDE";
+        }
+    }
+
     function getEnvironmentRootDir($version = ""){
         if ($version != "") {
             return "GraphLang/$version";

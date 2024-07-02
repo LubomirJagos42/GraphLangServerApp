@@ -131,12 +131,13 @@ class ControllerDefault{
         if ($loginInfo['isLogged'] == 1 && $currentProject > -1){
             $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
             $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
+            $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProject);
             $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
 
             $ideVersion = $this->modelProject->getProjectVersion($currentProject);
-            $htmlIncludeDirPrefix = $this->modelDirectory->getEnvironmentRootDir($ideVersion);
+            $htmlIncludeDirPrefix = $this->modelDirectory->getShapeDesignerHtmlIncludeDirPrefix($ideVersion);
             if ($ideVersion != ""){
-                include($htmlIncludeDirPrefix ."/GraphLang_ShapeDesigner/index.php");
+                include($htmlIncludeDirPrefix ."/index.php");
             }else{
                 include("ViewNotFound.php");
             }
@@ -263,7 +264,7 @@ class ControllerDefault{
             $outputStr .= "\t\t\t\t</style>\n";
             $outputStr .= "\t\t</head>\n";
             $outputStr .= "\t\t<body>\n";
-            $outputStr .= "\t\t<a href='?q=userProjectList'>Back to project list</a><br /><br />\n";
+            $outputStr .= "\t\t<a href='?q=userProjectList&debugMode=1'>Back to project list</a><br /><br />\n";
             $outputStr .= "\t\t<table>\n";
             for ($k = 0; $k < count($orderedNodesArray); $k++) {
                 $outputStr .= "\t\t\t\t<tr>\n";
@@ -279,7 +280,7 @@ class ControllerDefault{
             $outputStr .= "\t\t</html>\n";
         }else{
             $outputStr .= "No ordered nodes found!\n";
-            $outputStr .= "<br /><br /><a href='?q=userProjectList'>Back to project list</a>\n";
+            $outputStr .= "<br /><br /><a href='?q=userProjectList&debugMode=1'>Back to project list</a>\n";
         }
 
 		echo($outputStr);
@@ -410,16 +411,23 @@ class ControllerDefault{
             $projectCodeTemplate = isset($_POST["codeTemplate"]) ? $_POST["codeTemplate"] : "";
             $projectLanguage = isset($_POST["language"]) ? $_POST["language"] : "";
             $projectIdeVersion = isset($_POST["ideVersion"]) ? $_POST["ideVersion"] : "";
+            $projectNoImage = isset($_POST["noImage"]) ? $_POST["noImage"] : "";
 
             if ($projectName != ""){
-                $check = getimagesize($_FILES["image"]["tmp_name"]);
-                if($check !== false) {
-                    $projectImage = file_get_contents($_FILES["image"]["tmp_name"]);
+                $projectImageEncoded = "";
+                if(
+                    ($projectNoImage == false || $projectNoImage == "") &&
+                    isset($_FILES["image"]["tmp_name"]) &&
+                    $_FILES["image"]["tmp_name"] != "" &&
+                    getimagesize($_FILES["image"]["tmp_name"])
+                ) {
+                    $projectImage = $_FILES["image"]["tmp_name"] != "" ? file_get_contents($_FILES["image"]["tmp_name"]) : "";
                     $imageType = $_FILES["image"]["type"];
                     $projectImageEncoded = "data:$imageType;base64,". base64_encode($projectImage);
                 }
+                if($projectNoImage == true) $projectImageEncoded = "";
 
-                $result = $this->modelProject->createProject(
+                $newProjectId = $this->modelProject->createProject(
                     $currentUser,
                     $projectName,
                     $projectDescription,
@@ -430,8 +438,15 @@ class ControllerDefault{
                     $projectIdeVersion
                 );
 
-                echo("project create result: $result<br />\n");
+                echo("new project ID: $newProjectId<br />\n");
                 echo("<br />\n");
+
+                $templateProjectInfo = $this->modelProject->getTemplateProject();
+                $this->modelProject->copyNodesWithCategoriesFromToProject(
+                    $templateProjectInfo['internal_id'],
+                    $newProjectId
+                );
+
                 echo("<a href='?q=userProjectList'>Back to project list</a><br />\n");
 
             }else{
@@ -469,6 +484,7 @@ class ControllerDefault{
                 $projectCodeTemplate = isset($_POST["codeTemplate"]) ? $_POST["codeTemplate"] : "";
                 $projectLanguage = isset($_POST["language"]) ? $_POST["language"] : "";
                 $projectIdeVersion = isset($_POST["ideVersion"]) ? $_POST["ideVersion"] : "";
+                $projectNoImage = isset($_POST["noImage"]) ? $_POST["noImage"] : "";
             }
 
             if ($projectUpdate){
@@ -480,6 +496,7 @@ class ControllerDefault{
                     $imageType = $_FILES["image"]["type"];
                     $projectImageEncoded = "data:$imageType;base64,". base64_encode($projectImage);
                 }
+                if($projectNoImage == true) $projectImageEncoded = null;
 
                 $result = $this->modelProject->updateProject(
                     $currentUser,
@@ -518,17 +535,18 @@ class ControllerDefault{
     function doDownloadIde(){
         $loginInfo = $this->getLoginInfo();
         if ($loginInfo["isLogged"] == 1){
-            $currentUser = $this->modelLogin->getCurrentUserProjectId();
+            $currentUser = $this->modelLogin->getCurrentUserId();
             $currentProject = $this->modelLogin->getCurrentUserProjectId();
+            $projectOwnerId = $this->modelProject->getProjectOwnerId($currentProject);
 
             $rootDir = "_temp";
             $fileBaseName = "GraphLangIDE_user_".$currentUser."_project_".$currentProject;
             $tempDir = $rootDir.DIRECTORY_SEPARATOR.$fileBaseName;
             $zipFileName = $rootDir.DIRECTORY_SEPARATOR.$fileBaseName.".zip";
-            $file_url = "/GraphLangServerApp/_temp/".$fileBaseName.".zip";
+            $file_url = "_temp/".$fileBaseName.".zip";
 
             //remove all previous files for this user to not fill temp directory if called too many times
-            foreach (glob($rootDir.DIRECTORY_SEPARATOR."*_user_$currentUser_*") as $filename) unlink($filename);
+            foreach (glob($rootDir.DIRECTORY_SEPARATOR."*_user_".$currentUser."_*") as $filename) unlink($filename);
 
             @mkdir($rootDir);   //just to be sue there will be temporary dir created, if already exists this do nothing, warnings are supressed
             @$this->modelDirectory->recurseRmdir($tempDir);
@@ -538,6 +556,7 @@ class ControllerDefault{
 
             $environmentDir = $this->modelDirectory->getEnvironmentRootDir($this->modelProject->getProjectVersion($currentProject));
 
+            echo("START file copying into temporary dir<br/>\n");
             $this->modelDirectory->recursive_copy(
                 $environmentDir,
                 $tempDir,
@@ -552,18 +571,103 @@ class ControllerDefault{
                     "/^\..*$/"                //exclude files which starts with '.' (that are hidden files), this to remove files like .gitignore, .idea and so
                 )
             );
-            echo("files copied<br/>\n");
-            echo("starts packing dir to .zip<br/>\n");
+            echo("END files copied into temporary dir<br/>\n");
 
-            $this->modelDirectory->zipDir(
-                $tempDir,
-                $zipFileName
-            );
-            echo(".zip created<br />\n");
+            echo("START copying blocks files<br />\n");
+                echo("&nbsp;&nbsp;&nbsp;&nbsp;call \$this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);<br />\n");
+                $categoriesWithNodes = $this->modelSchematicNodes->getNodesWithCategories($projectOwnerId, $currentProject);
+                $libraryBlocksDir = $tempDir.DIRECTORY_SEPARATOR."GraphLang IDE".DIRECTORY_SEPARATOR."LibraryBlocks";
+
+                echo("&nbsp;&nbsp;&nbsp;&nbsp;creating dir $libraryBlocksDir<br />\n");
+                @mkdir($libraryBlocksDir);
+
+                /*
+                 *  SAVE NORMAL NODES INTO CATEGORY DIRECTORY
+                 */
+                foreach ($categoriesWithNodes as $categoryName => $nodeList){
+                    $categoryDir = $libraryBlocksDir.DIRECTORY_SEPARATOR.($categoryName == 0 ? "" : $categoryName);
+                    echo("&nbsp;&nbsp;&nbsp;&nbsp;creating dir $categoryDir<br />\n");
+                    @mkdir($categoryDir);
+                    ob_start();
+                    foreach ($nodeList as $node){
+                        $nodeInfo = $this->modelSchematicNodes->getNode($node["id"]);
+                        $outputFile = $categoryDir.DIRECTORY_SEPARATOR.$nodeInfo["node_display_name"].".js";
+                        echo("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;writing file ". $outputFile ."<br />\n");
+                        $nodefile = fopen($outputFile, "w");
+                        fwrite($nodefile, $nodeInfo['node_content_code']);
+                        fclose($nodefile);
+                    }
+                    ob_get_clean();
+                }
+            echo("END copying blocks files<br />\n");
+
+        echo("START copying hidden nodes into files");
+            /*
+             *  SAVE HIDDEN NODES INTO CATEGORY DIRECTORY
+             */
+            $categoryDir = $libraryBlocksDir.DIRECTORY_SEPARATOR."_hidden";
+            echo("&nbsp;&nbsp;&nbsp;&nbsp;creating dir $categoryDir<br />\n");
+            @mkdir($categoryDir);
+            foreach ($this->modelSchematicNodes->getProjectHiddenNodes($currentProject) as $nodeInfo){
+                ob_start();
+                    $outputFile = $categoryDir.DIRECTORY_SEPARATOR.$nodeInfo["node_display_name"].".js";
+                    echo("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;writing file ". $outputFile ."<br />\n");
+                    $nodefile = fopen($outputFile, "w");
+                    fwrite($nodefile, $nodeInfo['node_content_code']);
+                    fclose($nodefile);
+                ob_get_clean();
+            }
+            echo("END copying hidden nodes into files<br />\n");
+
+            echo("START create webpage file generate<br/>\n");
+                $params = array();
+                $params["blocksRootDir"] = "LibraryBlocks";
+                $params["excludeFromHtmlBlockPatterns"] = array(
+                    "_hidden"
+                );
+                $params["blocksToTabsAssignment"] = array();
+                foreach ($categoriesWithNodes as $categoryName => $nodeList){
+                    /*
+                     *  this will add category names and their paths for script in form:
+                     *      array(
+                     *          "some/path/categoryName1" => "categoryName1",
+                     *          "some/path/categoryName1" => "categoryName2",
+                     *          ...
+                     *          "some/path/categoryNameLast" => "categoryNameLast"
+                     *      );
+                     *
+                     *  for 'others' nodes n category is generated as they are sitting under library root directory directly
+                     */
+                    if ($categoryName != "0") $params["blocksToTabsAssignment"][$categoryName] = $categoryName;
+                }
+
+                /*
+                 *  This will include createWebPage.php file as php script and evaluate it as php script, insiide there is python script and
+                 *  on some places there are php tags to dynamically add content specific for downloading project.
+                 */
+                $createWebpageFilePath = "GraphLang".DIRECTORY_SEPARATOR.$this->modelProject->getProjectVersion($currentProject).DIRECTORY_SEPARATOR."GraphLang IDE".DIRECTORY_SEPARATOR."createWebPage.php";
+                echo("&nbsp;&nbsp;&nbsp;&nbsp;createWebpPageFile path: $createWebpageFilePath<br/>\n");
+                ob_start();
+                include($createWebpageFilePath);
+                $createWebpageScript = ob_get_clean();
+
+                $outputCreateWebpageFilePath = $tempDir.DIRECTORY_SEPARATOR."GraphLang IDE".DIRECTORY_SEPARATOR."createWebPage.py";
+                $outputCreateWebpageFile = fopen($outputCreateWebpageFilePath, "w");
+                fwrite($outputCreateWebpageFile, $createWebpageScript);
+                fclose($outputCreateWebpageFile);
+            echo("END create webpage file generate<br/>\n");
+
+            echo("START packing dir to .zip<br/>\n");
+                $this->modelDirectory->zipDir(
+                    $tempDir,
+                    $zipFileName
+                );
+            echo("END .zip created<br />\n");
 
             @$this->modelDirectory->recurseRmdir($tempDir);
             echo("temp dir removed<br />\n");
 
+            ob_get_clean();     //clean all echo into output buffer
             header('Content-Type: application/octet-stream');
             header("Content-Transfer-Encoding: Binary");
             header("Content-disposition: attachment; filename=\"" . basename($file_url) . "\"");
