@@ -339,6 +339,49 @@ class ModelSchematicNodes{
         return $nodesByCategories;
     }
 
+    function getAllNodesWithCategories($userOwner, $projectId){
+        $userOwner = (int)$userOwner;
+        $projectId = (int)$projectId;
+
+        $queryStr = "";
+
+        $queryStr .= "SELECT";
+        $queryStr .= "    project_categories.internal_id AS categoryId,";
+        $queryStr .= "    project_categories.category_name AS categoryName,";
+        $queryStr .= "    storage_schematic_blocks.internal_id AS nodeId,";
+        $queryStr .= "    storage_schematic_blocks.node_class_name AS nodeClassName,";
+        $queryStr .= "    storage_schematic_blocks.node_isHidden AS nodeIsHidden,";
+        $queryStr .= "    storage_schematic_blocks.node_display_name AS nodeDisplayName";
+        $queryStr .= " FROM `storage_schematic_blocks`";
+        $queryStr .= " LEFT JOIN nodes_to_category_assignment";
+        $queryStr .= " ON";
+        $queryStr .= "    storage_schematic_blocks.node_project = nodes_to_category_assignment.project_id AND";
+        $queryStr .= "    storage_schematic_blocks.internal_id = nodes_to_category_assignment.node_id";
+        $queryStr .= " LEFT JOIN project_categories";
+        $queryStr .= " ON";
+        $queryStr .= "    nodes_to_category_assignment.project_id = project_categories.project_id AND";
+        $queryStr .= "    nodes_to_category_assignment.category_id = project_categories.internal_id";
+        $queryStr .= " WHERE";
+        $queryStr .= "    storage_schematic_blocks.node_owner=$userOwner AND";
+        $queryStr .= "    storage_schematic_blocks.node_project=$projectId";
+        $queryStr .= " ORDER BY";
+        $queryStr .= "	  project_categories.category_name,";
+        $queryStr .= "    storage_schematic_blocks.node_display_name;";
+
+        $result = $this->db_conn->query($queryStr);
+
+        $outputList = array();
+        while ($row = $result->fetch_assoc()) {
+            $outputList[$row['nodeId']]['categoryName'] = $row['categoryName'];
+            $outputList[$row['nodeId']]['categoryId'] = $row['categoryId'];
+            $outputList[$row['nodeId']]['nodeClassName'] = $row['nodeClassName'];
+            $outputList[$row['nodeId']]['nodeDisplayName'] = $row['nodeDisplayName'];
+            $outputList[$row['nodeId']]['nodeIsHidden'] = $row['nodeIsHidden'];
+        }
+
+        return $outputList;
+    }
+
     function getEmptyCategoriesForProject($projectId){
         $queryStr = "";
         $queryStr .= "SELECT internal_id, category_name";
@@ -401,6 +444,20 @@ class ModelSchematicNodes{
         $isUserOwnerOfProject = $result->num_rows > 0;
 
         return $isUserOwnerOfProject;
+    }
+
+    function isUserOwnerOfNode($userId, $nodeId, $projectId, $nodeClassName){
+        $queryStr = "";
+        $queryStr = "SELECT COUNT(internal_id) FROM storage_schematic_blocks WHERE internal_id=$nodeId AND (node_owner=$userId OR (node_project=$projectId AND node_class_name='$nodeClassName'));";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            echo($this->db_conn->error);
+            return false;
+        }
+
+        $isUserOwnerOfNode = $result->num_rows > 0;
+
+        return $isUserOwnerOfNode;
     }
 
     function deleteCategory($categoryId){
@@ -579,6 +636,163 @@ class ModelSchematicNodes{
         return $this->db_conn->affected_rows;
     }
 
+    function updateNodeDisplayName($newDisplayName, $nodeId, $userId = -1, $projectId = -1, $nodeClassName = ""){
+        $nodeId = (int) $nodeId;
+
+        $outputStatus = array("status" => 0, 'errorMsg' => "");
+
+        if ($nodeId > -1){
+            $queryStr = "UPDATE storage_schematic_blocks SET node_display_name='$newDisplayName' WHERE internal_id=$nodeId;";
+        }else{
+            $queryStr = "UPDATE storage_schematic_blocks SET node_display_name='$newDisplayName' WHERE node_class_name='$nodeClassName' AND node_owner=$userId AND node_project=$projectId;";
+        }
+        $result = $this->db_conn->query($queryStr);
+
+        if ($result){
+            $outputStatus['status'] = 1;
+            $outputStatus['affected_rows'] = $this->db_conn->affected_rows;
+        }else{
+            $outputStatus['status'] = -1;
+            $outputStatus['errorMsg'] = $this->db_conn->error;
+        }
+
+        return $outputStatus;
+    }
+
+    function updateNodeLanguage($newLanguage, $nodeId, $userId = -1, $projectId = -1, $nodeClassName = ""){
+        $nodeId = (int) $nodeId;
+
+        $outputStatus = array("status" => 0, 'errorMsg' => "");
+
+        if ($nodeId > -1){
+            $queryStr = "UPDATE storage_schematic_blocks SET node_language='$newLanguage' WHERE internal_id=$nodeId;";
+        }else{
+            $queryStr = "UPDATE storage_schematic_blocks SET node_language='$newLanguage' WHERE node_class_name='$nodeClassName' AND node_owner=$userId AND node_project=$projectId;";
+        }
+        $result = $this->db_conn->query($queryStr);
+
+        if ($result){
+            $outputStatus['status'] = 1;
+            $outputStatus['affected_rows'] = $this->db_conn->affected_rows;
+        }else{
+            $outputStatus['status'] = -1;
+            $outputStatus['errorMsg'] = $this->db_conn->error;
+        }
+
+        return $outputStatus;
+    }
+
+    function updateNodeIsHidden($newIsHidden, $nodeId, $userId = -1, $projectId = -1, $nodeClassName = ""){
+        $nodeId = (int) $nodeId;
+
+        $outputStatus = array("status" => 0, 'errorMsg' => "");
+
+        if ($nodeId > -1){
+            $queryStr = "UPDATE storage_schematic_blocks SET node_isHidden=$newIsHidden WHERE internal_id=$nodeId;";
+        }else{
+            $queryStr = "UPDATE storage_schematic_blocks SET node_isHidden=$newIsHidden WHERE node_class_name='$nodeClassName' AND node_owner=$userId AND node_project=$projectId;";
+        }
+        $result = $this->db_conn->query($queryStr);
+
+        if ($result){
+            $outputStatus['status'] = 1;
+            $outputStatus['affected_rows'] = $this->db_conn->affected_rows;
+        }else{
+            $outputStatus['status'] = -1;
+            $outputStatus['errorMsg'] = $this->db_conn->error;
+        }
+
+        return $outputStatus;
+    }
+
+    function updateNodeClassName($newNodeClassName, $userId = -1, $projectId = -1, $nodeClassName = ""){
+        $outputStatus = array("status" => 0, 'errorMsg' => "");
+
+        $queryStr = "SELECT internal_id FROM storage_schematic_blocks WHERE node_owner=$userId AND node_project=$projectId AND node_class_name='$nodeClassName';";
+        echo($queryStr);
+        $result = $this->db_conn->query($queryStr);
+        $originalNodeId = -1;
+        if ($result){
+            $row = $result->fetch_row();
+            $originalNodeId = $row[0];
+        }
+        if ($originalNodeId == -1){
+            $outputStatus["status"] = -1;
+            $outputStatus["errorMsg"] = "There is no node in project $projectId with class name '$nodeClassName'";
+            return $outputStatus;
+        }
+
+        $queryStr = "SELECT internal_id, node_content_code FROM storage_schematic_blocks WHERE node_owner=$userId AND node_project=$projectId;";
+        $sqlProjectNodes = $this->db_conn->query($queryStr);
+
+        $originalNodeClassName = $nodeClassName;
+
+        $nodeClassName = str_replace('.', '\.', $nodeClassName);
+        $nodeClassNameUnderscores = str_replace('.', '_', $nodeClassName);
+        $newNodeClassNameUnderscores = str_replace('.', '_', $newNodeClassName);
+
+        $outputStatus["changedNodes"] = array();
+        while ($row = $sqlProjectNodes->fetch_assoc()){
+            $newContentCode = $row["node_content_code"];
+            $currentNodeId = $row["internal_id"];
+
+            /*
+             *  REPLACE class name with dot separator ie. GraphLang.Shapes.Basic.Constant
+             */
+            $pattern = '/([^a-zA-Z0-9\.])'.$nodeClassName.'([^a-zA-Z0-9\.])/';
+            $replacement = "$1".$newNodeClassName."$2";
+            $newContentCode = preg_replace($pattern, $replacement, $newContentCode);
+
+            /*
+             *  REPLACE class name with underscore separator ie. GraphLang_Shapes_Basic_Constant
+             *      these are used in saved schematic as cssClass in json inside classes
+             */
+            $pattern = '/([^a-zA-Z0-9\.])'.$nodeClassNameUnderscores.'([^a-zA-Z0-9\.])/';
+            $replacement = "$1".$newNodeClassNameUnderscores."$2";
+            $newContentCode = preg_replace($pattern, $replacement, $newContentCode);
+
+            /*
+             *  REPLACE Some.Class.Name = GraphLang.Shapes.Basic.Constant.extend(
+             *      replace that name of class for .extend( due it looks like normal continue of class name
+             */
+            $pattern = '/([^a-zA-Z0-9\.])'.$nodeClassName.'(\.extend[\s]*\()/';
+            $replacement = "$1".$newNodeClassName."$2";
+            $newContentCode = preg_replace($pattern, $replacement, $newContentCode);
+
+            $newContentCodeHex = bin2hex($newContentCode);
+
+            $outputStatus["changedNodes"][$currentNodeId] = array();
+
+            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code=UNHEX('$newContentCodeHex') WHERE internal_id=$currentNodeId;";
+            $result = $this->db_conn->query($queryStr);
+
+            if (!$result){
+                $outputStatus["changedNodes"][$currentNodeId]["status"] = -1;
+                $outputStatus["changedNodes"][$currentNodeId]["error"] = $this->db_conn->error;
+            }else{
+                $outputStatus["changedNodes"][$currentNodeId]["status"] = 1;
+            }
+        }
+
+        //UPDATE all classes which use this class as parent
+        $queryStr = "UPDATE storage_schematic_blocks SET node_class_parent='$newNodeClassName' WHERE node_project=$projectId AND node_class_parent='$originalNodeClassName';";
+        $result = $this->db_conn->query($queryStr);
+
+        //UPDATE class name in table for currently modified class
+        $queryStr = "UPDATE storage_schematic_blocks SET node_class_name='$newNodeClassName' WHERE internal_id=$originalNodeId;";
+        $result = $this->db_conn->query($queryStr);
+
+        if ($result){
+            $outputStatus['status'] = 1;
+            $outputStatus['affected_rows'] = $this->db_conn->affected_rows;
+        }else{
+            $outputStatus['status'] = -1;
+            $outputStatus['errorMsg'] = $this->db_conn->error;
+        }
+
+        return $outputStatus;
+    }
+
     function replaceNodeSchematicJsonDocument($userOwner, $projectId, $nodeClassName, $nodeClassContent, $hexFormat = false){
         $userOwner = (int) $userOwner;
         $projectId = (int) $projectId;
@@ -649,9 +863,14 @@ class ModelSchematicNodes{
         return $outputArray;
     }
 
-    function getNode($nodeId){
+    function getNode($nodeId, $userId=-1, $projectId=-1, $nodeClassName="", $nodeContentAsHex=false){
         $queryStr = "";
-        $queryStr .= "SELECT internal_id, node_display_name, node_class_name, node_class_parent, node_content_code, node_language, node_isHidden, node_directory, node_owner, node_project FROM storage_schematic_blocks WHERE internal_id=$nodeId;";
+        if ($nodeContentAsHex){
+            $queryStr .= "SELECT internal_id, node_display_name, node_class_name, node_class_parent, HEX(node_content_code) as node_content_code, node_language, node_isHidden, node_directory, node_owner, node_project FROM storage_schematic_blocks";
+        }else {
+            $queryStr .= "SELECT internal_id, node_display_name, node_class_name, node_class_parent, node_content_code, node_language, node_isHidden, node_directory, node_owner, node_project FROM storage_schematic_blocks";
+        }
+        $queryStr .= " WHERE (internal_id=$nodeId OR (node_owner=$userId AND node_project=$projectId AND node_class_name='$nodeClassName'));";
         $result = $this->db_conn->query($queryStr);
         $row = $result->fetch_assoc();
         return $row;

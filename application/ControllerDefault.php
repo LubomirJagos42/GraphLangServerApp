@@ -67,7 +67,7 @@ class ControllerDefault{
     private function getLoginInfo(){
         $passwordMD5 = isset($_SESSION["password"]) ? $_SESSION["password"] : "";
 
-        $loginInfo =	$this->modelLogin->isUserLogged(
+        $loginInfo = $this->modelLogin->isUserLogged(
             $this->modelLogin->getCurrentUsername(),
             "",
             md5($passwordMD5 . $this->modelLogin->getCurrentUserToken())
@@ -575,6 +575,28 @@ class ControllerDefault{
             );
             echo("END files copied into temporary dir<br/>\n");
 
+            echo("START modifying HTML file for IDE");
+                $outputHtmlIdeFile = $tempDir.DIRECTORY_SEPARATOR."GraphLang IDE".DIRECTORY_SEPARATOR."GrahpLang IDE Generated Downloaded.html";
+
+                $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
+                $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
+                $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProject);
+                $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
+
+                $orderedNodesList = $this->modelSchematicNodes->getOrderedNodesForProject($currentUser, $currentProject);
+                $nodesListWithCateories = $this->modelSchematicNodes->getAllNodesWithCategories($currentUser, $currentProject);
+
+                $ideVersion = $this->modelProject->getProjectVersion($currentProject);
+                $htmlIncludeDirPrefix = '.';
+
+
+                ob_start();
+                include($this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion) ."/GrahpLang IDE Generated Downloaded.php");
+                $outputHtmlIdeFileContent = ob_get_contents();
+                file_put_contents($outputHtmlIdeFile, $outputHtmlIdeFileContent);
+                ob_get_clean();
+            echo("END modifying HTML file for IDE");
+
             echo("START copying blocks files<br />\n");
                 echo("&nbsp;&nbsp;&nbsp;&nbsp;call \$this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);<br />\n");
                 $categoriesWithNodes = $this->modelSchematicNodes->getNodesWithCategories($projectOwnerId, $currentProject);
@@ -603,7 +625,7 @@ class ControllerDefault{
                 }
             echo("END copying blocks files<br />\n");
 
-        echo("START copying hidden nodes into files");
+            echo("START copying hidden nodes into files");
             /*
              *  SAVE HIDDEN NODES INTO CATEGORY DIRECTORY
              */
@@ -746,7 +768,7 @@ class ControllerDefault{
     }
 
     function doCategoryOperation(){
-        $result = array("status" => 0, "errorMsg" => "unknown error");
+        $result = array("status" => 0, "errorMsg" => "");
 
         $loginInfo = $this->getLoginInfo();
         if ($loginInfo["isLogged"] == 1){
@@ -802,6 +824,92 @@ class ControllerDefault{
                 $result["errorMsg"] = "category operation not recognized";
             }
 
+            echo json_encode($result);
+        }else{
+            $result["errorMsg"] = "User not logged!";
+            echo json_encode($result);
+        }
+
+    }
+
+    function doNodeOperation(){
+        $result = array("status" => 0, "errorMsg" => "");
+
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
+
+        #
+        #   Here are data expected coming from python script therefore expected input is:
+        #       username: user email like john.doe@somedomain.com
+        #       password: ""
+        #       token:    token as it should be md5(md5(raw password) + token from server)
+        #
+        $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
+        if ($loginInfo["isLogged"] == 1){
+            /*
+             *  Get current logged user information.
+             */
+            $userOwner = $this->modelLogin->getCurrentUserId();
+            $projectId = $this->modelLogin->getCurrentUserProjectId();
+
+            /*
+             *  Check if user is owner of node, if not do not continue
+             */
+            $operation = $this->getVariableFromPost("operation", "");
+            $nodeClassName = $this->getVariableFromPost("nodeClassName", "");
+
+            $nodeNewDisplayName = $this->getVariableFromPost("nodeNewDisplayName", "");
+            $nodeNewClassName = $this->getVariableFromPost("nodeNewClassName", "");
+            $nodeNewIsHidden = $this->getVariableFromPost("nodeNewIsHidden", -1);
+            $nodeNewCodeContent = $this->getVariableFromPost("nodeNewCodeContent", "");
+            $nodeNewLanguage = $this->getVariableFromPost("nodeNewLanguage", "");
+            $nodeNewParent = $this->getVariableFromPost("nodeNewParent", "");
+
+            /*
+             *  Trying to obtain nodeId from:
+             *      - GET
+             *      - POST
+             *  if node id is specified than get current node details from DB and overwrite parameters for project id and class name even if they are send
+             *  nodeId if provided it overwrites other params
+             */
+            $nodeId = $this->getVariableFromGet("nodeId", -1);
+            if ($nodeId == -1) $nodeId = $this->getVariableFromPost("nodeId", -1);
+            if ($nodeId > -1){
+                $nodeInfo = $this->modelSchematicNodes->getNode($nodeId);
+                $nodeClassName = $nodeInfo['node_class_name'];
+                $projectId = $nodeInfo['node_project'];
+            }
+
+            if ($this->modelSchematicNodes->isUserOwnerOfNode($userOwner, $nodeId, $projectId, $nodeClassName) == false){
+                $result = array("status" => 0, "errorMsg" => "user is not node owner node details change not allowed");
+                echo json_encode($result);
+                return;
+            }
+
+            $result = array("status"=>0, "errorMsg"=>"");
+            /*
+             *  User is allowed to do operation, here it's performed.
+             */
+            if ($operation == "changeNodeDisplayName"){
+                $result = $this->modelSchematicNodes->updateNodeDisplayName($nodeNewDisplayName, $nodeId, $userOwner, $projectId, $nodeClassName);
+            }else if ($operation == "changeNodeClassName"){
+                $result = $this->modelSchematicNodes->updateNodeClassName($nodeNewClassName, $userOwner, $projectId, $nodeClassName);
+            }else if ($operation == "changeNodeLanguage"){
+                $result = $this->modelSchematicNodes->updateNodeLanguage($nodeNewLanguage, $nodeId, $userOwner, $projectId, $nodeClassName);
+            }else if ($operation == "changeNodeIsHidden"){
+                $result = $this->modelSchematicNodes->updateNodeIsHidden($nodeNewIsHidden, $nodeId, $userOwner, $projectId, $nodeClassName);
+            }else if ($operation == "getNodeInfo"){
+                $result["status"] = 1;
+                $result["output"] = $this->modelSchematicNodes->getNode($nodeId, $userOwner, $projectId, $nodeClassName, true);
+            }else if ($operation == "changeNodeCodeContent"){
+                $result = $this->modelSchematicNodes->updateNodeCodeContent($userOwner, $projectId, $nodeClassName, $nodeNewCodeContent, true);
+            }else{
+                $result["errorMsg"] = "node operation not recognized";
+            }
+
+            $result['token'] = $loginInfo['token'];
             echo json_encode($result);
         }else{
             $result["errorMsg"] = "User not logged!";

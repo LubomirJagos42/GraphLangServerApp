@@ -38,6 +38,7 @@ class ModelLogin{
             $queryStr = "SELECT internal_id, last_logged, TIME_TO_SEC(TIMEDIFF(current_timestamp, last_logged)) FROM active_users WHERE";
             $queryStr .= " email='$useremail' AND";
             $queryStr .= " '$usertoken'=MD5(CONCAT(password, token))";
+//            echo("TOKEN LOGIN: ".$queryStr."\n");
             $result = $this->db_conn->query($queryStr);
 
 			#check if there is 1 line returned
@@ -49,6 +50,7 @@ class ModelLogin{
 		#if token wasn't used and there is name and password provided
 		if ($wasTokenUsed == false && $useremail != "" && $password != ""){
 			$queryStr = "SELECT internal_id, last_logged, TIME_TO_SEC(TIMEDIFF(current_timestamp, last_logged)) FROM active_users WHERE email='$useremail' AND password='$password';";
+//            echo("PASS LOGIN: ".$queryStr."\n");
             $result = $this->db_conn->query($queryStr);
 		}
 
@@ -131,6 +133,7 @@ class ModelLogin{
         $projectId = -1;
         if (isset($_SESSION["projectId"])) $projectId = $_SESSION["projectId"];
         else if(isset($_GET["projectId"])) $projectId = $_GET["projectId"];
+        else if(isset($_POST["projectId"])) $projectId = $_POST["projectId"];
 
 		return $projectId;
 	}

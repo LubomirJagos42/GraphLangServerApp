@@ -69,6 +69,9 @@ include_once("application/ControllerDefault.php");
 	}else if($q == "categoryOperation"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doCategoryOperation();
+	}else if($q == "nodeOperation"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doNodeOperation();
 	}else{
 		$controller->doNotFound();			
 	}
