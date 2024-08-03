@@ -576,7 +576,7 @@ class ControllerDefault{
             echo("END files copied into temporary dir<br/>\n");
 
             echo("START modifying HTML file for IDE");
-                $outputHtmlIdeFile = $tempDir.DIRECTORY_SEPARATOR."GraphLang IDE".DIRECTORY_SEPARATOR."GrahpLang IDE Generated Downloaded.html";
+                $outputHtmlIdeFile = $tempDir.DIRECTORY_SEPARATOR."GraphLang IDE".DIRECTORY_SEPARATOR."GrahpLang IDE Generated 1.html";
 
                 $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
                 $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
@@ -781,13 +781,10 @@ class ControllerDefault{
             /*
              *  Get parameters for category operation.
              */
-            $operation = isset($_POST['operation']) ? $_POST['operation'] : "";
-            $categoryId = isset($_POST['categoryId']) ? $_POST['categoryId'] : -1;
-            $nodeId = isset($_POST['nodeId']) ? $_POST['nodeId'] : -1;
-            $categoryName = isset($_POST['categoryName']) ? $_POST['categoryName'] : "Name Unknown";
-
-            $categoryId = $categoryId ? $categoryId : -1;
-            $nodeId = $nodeId ? $nodeId : -1;
+            $operation = $this->getVariableFromPost("operation", "");
+            $categoryId = $this->getVariableFromPost("categoryId", -1);
+            $nodeId = $this->getVariableFromPost("nodeId", -1);
+            $categoryName = $this->getVariableFromPost("categoryName", "Name Unknown");
 
             /*
              *  Check conditions if user is owner of category or project before doing operations over DB to really do that stuff.

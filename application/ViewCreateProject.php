@@ -38,6 +38,7 @@
                     <td>Code template:</td>
                     <td>
                         <select name="codeTemplate">
+                            <option value="arduino" <?= $projectCodeTemplate == "esp" ? "selected" : "" ?>>Espressif ESP</option>
                             <option value="arduino" <?= $projectCodeTemplate == "arduino" ? "selected" : "" ?>>arduino</option>
                             <option value="desktop" <?= $projectCodeTemplate == "desktop" ? "selected" : "" ?>>desktop</option>
                         </select>

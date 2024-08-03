@@ -408,7 +408,7 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
                 <input name="node_id" type="hidden" value="<?= $node['id'] ?>"/>
                 <input name="category_id" type="hidden" value="<?= $node['categoryId'] ?>"/>
             </td>
-            <td><a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeClassName=<?= $node['className']?>">edit symbol</a></td>
+            <td><a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit symbol</a></td>
         </tr>
         <?php
     }

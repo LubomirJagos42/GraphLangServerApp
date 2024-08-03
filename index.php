@@ -73,7 +73,7 @@ include_once("application/ControllerDefault.php");
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doNodeOperation();
 	}else{
-		$controller->doNotFound();			
+		$controller->doNotFound();
 	}
 	
 mysqli_close($db_conn);	
