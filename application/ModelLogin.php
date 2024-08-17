@@ -1,8 +1,8 @@
 <?php
 #Model Login Class
 class ModelLogin{
-    private string $email = "";
-    private string $password = "";
+    private $email = "";
+    private $password = "";
 	private $db_conn;
 
     function __construct($db_conn){
