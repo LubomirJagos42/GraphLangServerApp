@@ -1,11 +1,12 @@
 <?php
+include_once("ControllerParent.php");
 include_once("ModelLogin.php");
 include_once("ModelSchematicNodes.php");
 include_once("ModelDirectory.php");
 include_once("ModelProject.php");
 
 #Controller Default Class
-class ControllerDefault{
+class ControllerDefault extends ControllerParent{
     private $modelLogin;
 	private $modelSchematicNodes;
 	private $modelDirectory;
@@ -15,16 +16,6 @@ class ControllerDefault{
 		$this->modelSchematicNodes = new modelSchematicNodes($db_conn);
 		$this->modelDirectory = new modelDirectory($db_conn);
 		$this->modelProject = new modelProject($db_conn);
-    }
-
-    private function getVariableFromPost($varname, $defaultVal = null){
-        if (isset($_POST[$varname])) return $_POST[$varname];
-        return $defaultVal;
-    }
-
-    private function getVariableFromGet($varname, $defaultVal = null){
-        if (isset($_GET[$varname])) return $_GET[$varname];
-        return $defaultVal;
     }
 
     private function getCurrentUserLoginVariables(){
@@ -666,7 +657,7 @@ class ControllerDefault{
                 }
 
                 /*
-                 *  This will include createWebPage.php file as php script and evaluate it as php script, insiide there is python script and
+                 *  This will include createWebPage.php file as php script and evaluate it as php script, inside there is python script and
                  *  on some places there are php tags to dynamically add content specific for downloading project.
                  */
                 $createWebpageFilePath = "GraphLang".DIRECTORY_SEPARATOR.$this->modelProject->getProjectVersion($currentProject).DIRECTORY_SEPARATOR."GraphLang IDE".DIRECTORY_SEPARATOR."createWebPage.php";

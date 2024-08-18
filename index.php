@@ -5,8 +5,10 @@ session_start();
 
 include_once("application/config_database.php");
 include_once("application/ControllerDefault.php");
+include_once("application/ControllerOsCommands.php");
 
 	$controller = new ControllerDefault($db_conn);
+	$controllerOsCommands = new ControllerOsCommands($db_conn);
 
 	$GENERATE_SCRIPT_EXECUTION_TIME = true;
 
@@ -72,6 +74,8 @@ include_once("application/ControllerDefault.php");
 	}else if($q == "nodeOperation"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doNodeOperation();
+	}else if ($q == "runPythonCppDebugServer"){
+		$controllerOsCommands->doRunPythonCppDebugServer();
 	}else{
 		$controller->doNotFound();
 	}
