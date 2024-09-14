@@ -215,7 +215,7 @@ class ControllerDefault extends ControllerParent{
         $nodeIsHidden =  $this->getVariableFromPost("nodeIsHidden", "");
         $nodeCategoryName =  $this->getVariableFromPost("nodeCategory", "");
 
-		$outputStr .= $this->modelSchematicNodes->saveNode(
+		$saveResult = $this->modelSchematicNodes->saveNode(
             $nodeOwner,
             $projectId,
             $nodeName,
@@ -227,6 +227,8 @@ class ControllerDefault extends ControllerParent{
             $nodeIsHidden,
             $nodeCategoryName
         );
+
+        $outputStr .= $saveResult["message"];
 
         $usertoken = $this->modelLogin->getCurrentUserToken();
         $outputStr .= "\nusertoken:'$usertoken'\n";
@@ -291,6 +293,7 @@ class ControllerDefault extends ControllerParent{
                 $this->modelLogin->getCurrentUserId(),
                 $this->modelLogin->getCurrentUserProjectId()
             );
+            echo($orderedNodesArray);
         }else{
             $projectId = $this->modelLogin->getCurrentUserProjectId();
             echo("alert('javascript nodes from server: user not logged!\nprojectId: $projectId');\n");
@@ -541,7 +544,7 @@ class ControllerDefault extends ControllerParent{
             //remove all previous files for this user to not fill temp directory if called too many times
             foreach (glob($rootDir.DIRECTORY_SEPARATOR."*_user_".$currentUser."_*") as $filename) unlink($filename);
 
-            @mkdir($rootDir);   //just to be sue there will be temporary dir created, if already exists this do nothing, warnings are supressed
+            @mkdir($rootDir);   //just to be sure there will be temporary dir created, if already exists this do nothing, warnings are suppressed
             @$this->modelDirectory->recurseRmdir($tempDir);
             @mkdir($tempDir);
 
@@ -903,7 +906,250 @@ class ControllerDefault extends ControllerParent{
             $result["errorMsg"] = "User not logged!";
             echo json_encode($result);
         }
+    }
 
+    /*
+     *  TODO this function is in implementation progress
+     *      14th September
+     *          - it's done and tested, there could be errors but seems to be working when called from Chrome using console and sending ajax requests
+     *          - I am exhausted from work and it's 3am so I am OK with how it's running now
+     */
+    function doCompileProject(){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1) {
+            $currentUser = $this->modelLogin->getCurrentUserId();
+            $currentProject = $this->modelLogin->getCurrentUserProjectId();
+
+            #
+            #   Create project output directory
+            #
+            $projectOutputDir = $this->modelDirectory->createCurrentUserProjectTempDir($currentUser, $currentProject);
+            if (!$projectOutputDir) {
+                $result = array("status" => 0, "errorMsg" => "Unable to create user project temp dir");
+                echo($result);
+                return;
+            }
+
+            #
+            #   Erase everything from project build directory
+            #
+            $compileOutputDir = $projectOutputDir . DIRECTORY_SEPARATOR . "build";
+            @mkdir($compileOutputDir);
+            $result["compileOutputDir"] = $compileOutputDir;
+
+            #
+            #   Copy code into output file and run python compilation script
+            #
+            $nodeCodeContent = $this->getVariableFromPost("nodeCodeContent", "");
+            $outputFileName = $this->getVariableFromPost("outputFileName", "main");
+            $codeStr = hex2bin($nodeCodeContent);
+
+            $fileToCompile = $compileOutputDir.DIRECTORY_SEPARATOR."main.cpp";      #name hardcoded since node code is generated into one file
+            $outFile = fopen($fileToCompile, "w+");
+            fwrite($outFile, $codeStr);
+            fclose($outFile);
+
+            #
+            #   Run compilation python script from IDE directory
+            #       - using absolute paths to be sure
+            #       - used dirname(__FILE__, 2) since we are at directory of this php script so tested need goint to parent dir and then one more up, that is 2nd param 2
+            #
+            #   TODO GraphLang IDE version is hardwired need to be replaced by obtaining from DB
+            #
+            $fileToCompileAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$fileToCompile;
+            $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR.$outputFileName;
+
+            $compileCommand = "";
+            $compileCommand .= "python";
+            $compileCommand .= ' "'.dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix("0v1").DIRECTORY_SEPARATOR."python_tools".DIRECTORY_SEPARATOR.'compileCppCode.py"';
+            $compileCommand .= ' "'.$fileToCompileAbsolutePath.'"';
+            $compileCommand .= ' "'.$compileFileOutputAbsolutePath.'"';
+            $compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
+
+            $result["outputFileAbsolutePath"] = $compileFileOutputAbsolutePath;
+            $result["compileCommand"] = $compileCommand;
+            $result["compileCommandOutput"] = shell_exec($compileCommand);
+
+            #
+            #   WRITE COMPILATION RESULT
+            #
+            $result["status"] = 1;
+            $result["message"] .= "Project compilation finished, check compilation output.\n";
+        }else{
+            $result["errorMsg"] .= "User not logged!\n";
+        }
+
+        echo(json_encode($result));
+    }
+
+    /*
+     *  TODO this function is in implementation progress
+     *      14th September
+     *          - I've done it using if/else really nested and seems to be working
+     *          - there is many combinations what can happen I put there checking
+     *          - it could be maybe done simpler but now I am exhausted after work and so and this was wrote just dull and tested from Chrome at least it's running and oing checks right
+     *          - if reimplemented just implement another method like doNodeUpload2() or something, left this one :)
+     */
+    function doNodeUpload(){
+        $result = array("status" => 0, "errorMsg" => "", "warningMsg" => "", "message" => "");
+
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
+
+        #
+        #   Here are data expected coming from python script therefore expected input is:
+        #       username: user email like john.doe@somedomain.com
+        #       password: ""
+        #       token:    token as it should be md5(md5(raw password) + token from server)
+        #
+        $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
+        if ($loginInfo["isLogged"] == 1){
+            /*
+             *  Get current logged user information.
+             */
+            $userOwner = $this->modelLogin->getCurrentUserId();
+            $projectId = $this->modelLogin->getCurrentUserProjectId();
+            $nodeId = $this->getVariableFromPost("nodeId", -1);
+            $nodeClassName = $this->getVariableFromPost("nodeClassName", "");
+            $nodeDisplayName = $this->getVariableFromPost("nodeDisplayName", "");
+            $nodeClassParentName = $this->getVariableFromPost("nodeClassParentName", "");
+            $nodeCodeContent = $this->getVariableFromPost("nodeCodeContent", "");
+
+            ###
+            #   Here first need to be checked:
+            #       1. check if ID, className from DB, className from codeContent are ok, ie. if node is going to be:
+            #           a) update - just update code content
+            #           b) create - whole new node is going to be create
+            #           c) rename and update - first rename then update code content
+            #
+
+            ###
+            #   1. look into DB if node exists based on its ID or class name
+            #
+            $nodeInfo  = null;
+            if ($nodeId != -1 || $nodeClassName != "") $nodeInfo = $this->modelSchematicNodes->getNode($nodeId, $userOwner, $projectId, $nodeClassName);
+
+            ###
+            #   2. Going to figure out what to do a), b) or c)
+            #
+            if ($nodeId != -1 && $nodeInfo){
+                $nodeNameAndParentFromCode = $this->modelSchematicNodes->extractClassNameAndParent($nodeCodeContent);
+
+                if ($nodeClassName != "" && ($nodeInfo['node_class_name'] != $nodeClassName || $nodeNameAndParentFromCode["nodeClassName"] != $nodeClassName)){
+                    #
+                    #   option c)
+                    #
+                    if ($nodeNameAndParentFromCode["nodeClassName"] != $nodeClassName) $result["warningMsg"] = "Node name in code [".$nodeNameAndParentFromCode["nodeClassName"]."] and in post parameter [".$nodeClassName."] are different, using name from code";
+
+                    $result["renameResult"] = $this->modelSchematicNodes->updateNodeClassName($nodeNameAndParentFromCode["nodeClassName"], $userOwner, $projectId, $nodeInfo['node_class_name'], true);
+
+                    $affectedRows = $this->modelSchematicNodes->updateNodeCodeContent($userOwner, $projectId, $nodeNameAndParentFromCode["nodeClassName"], $nodeCodeContent, true);
+                    $result["updateNodeCodeContentResult"] = array(
+                        "affectedRows" => $affectedRows
+                    );
+
+                    #
+                    #   For now just check if rename was sucessful, there is no check for updated node code content since code could stay same and affected rows therefore are 0
+                    #
+                    if ($result["renameResult"]["status"]){
+                        $result["status"] = 1;
+                        $result["message"] .= "Node upload - based on nodeId - node name [".$nodeNameAndParentFromCode["nodeClassName"]."] - OK\n";
+                    }
+                }else{
+                    #
+                    #   option a)
+                    #
+
+                    if (strlen($nodeCodeContent) > 0){
+                        $affectedRows = $this->modelSchematicNodes->updateNodeCodeContent($userOwner, $projectId, $nodeInfo["node_class_name"], $nodeCodeContent, true, $nodeId);
+
+                        //if content is same as before 0 node is updated this is DB thing
+                        $result["status"] = 1;
+                        $result["message"] .= "Node upload - UPDATE based on nodeId - ".$nodeInfo["node_class_name"]." - update $affectedRows node - OK\n";
+                    }else{
+                        $result["errorMsg"] .= "Node upload - UPDATE based on nodeId - received node content is empty\n";
+                    }
+                }
+
+                #
+                #   If node parent in code is different than one in DB update it
+                #
+                if ($nodeNameAndParentFromCode["nodeClassParent"] != $nodeInfo['node_class_parent']){
+                    $affectedRows = $this->modelSchematicNodes->updateNodeClassParent($nodeNameAndParentFromCode["nodeClassParent"], $userOwner, $projectId, "", $nodeId);
+                    if ($affectedRows > 0) $result["message"] .= "Node upload - UPDATE based on nodeId - node id ".$nodeId." - update class parent on $affectedRows row\n";
+                }
+
+            }else if ($nodeClassName){
+                #
+                #   Perform check if node class name and parent are same, for case that user try to push there some suspicious code
+                #       THIS IS REALLY ERROR CASE BECAUSE USER WANT TO UPLOAD SOME CLASS BY NAME BUT SENDING DIFFERENT NODE CLASS NAME IN CODE!!!
+                #
+                $nodeNameAndParentFromCode = $this->modelSchematicNodes->extractClassNameAndParent($nodeCodeContent);
+                if ($nodeNameAndParentFromCode["nodeClassName"] != $nodeClassName){
+                    $result["errorMsg"] .= "Node upload - UPDATE based on className - different class name in POST parameters [".$nodeClassName."] and inside code [".$nodeNameAndParentFromCode["nodeClassName"]."] !\n";
+                    echo json_encode($result);
+                    return;
+                }
+
+                if ($nodeInfo){
+                    #
+                    #   option a)
+                    #
+
+                    if (strlen($nodeCodeContent) > 0){
+                        $affectedRows = $this->modelSchematicNodes->updateNodeCodeContent($userOwner, $projectId, $nodeInfo["node_class_name"], $nodeCodeContent, true);
+
+                        #
+                        #   If node parent in code is different than one in DB update it USING NODE CLASS NAME
+                        #
+                        if ($nodeNameAndParentFromCode["nodeClassParent"] != $nodeInfo['node_class_parent']){
+                            $affectedRows = $this->modelSchematicNodes->updateNodeClassParent($nodeNameAndParentFromCode["nodeClassParent"], $userOwner, $projectId, $nodeClassName);
+                            if ($affectedRows > 0) $result["message"] .= "Node upload - ".$nodeInfo["node_class_name"]." - update class parent on $affectedRows row\n";
+                        }
+
+                        //if content is same as before 0 node is updated this is DB thing
+                        $result["status"] = 1;
+                        $result["message"] .= "Node upload - UPDATE based on className - ".$nodeInfo["node_class_name"]." - update $affectedRows node - OK\n";
+                    }else{
+                        $result["errorMsg"] .= "Node upload - UPDATE based on className - received node content is empty\n";
+                    }
+
+                }else{
+                    #
+                    #   option b)
+                    #
+
+                    $saveResult = $this->modelSchematicNodes->saveNode(
+                        $userOwner,
+                        $projectId,
+                        $nodeClassName,
+                        $nodeCodeContent,
+                        "",
+                        "",
+                        "",
+                        $nodeDisplayName ? $nodeDisplayName : $nodeClassName
+                    );
+
+                    //TODO need to do evaluation of JSON from save node, for now suppose that something happen
+                    $result["message"] = $saveResult["message"];
+                    $result["status"] = 1;
+                }
+            }else{
+                $result["errorMsg"] .= "Node upload - no nodeId [$nodeId] or nodeClassName [$nodeClassName] provided!\n";
+            }
+
+        }else{
+            $result["errorMsg"] .= "User not logged!\n";
+        }
+
+        #
+        #   PRINT RESULT JSON TO OUTPUT
+        #
+        echo json_encode($result);
     }
 
 }

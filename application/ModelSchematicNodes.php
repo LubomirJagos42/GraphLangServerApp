@@ -5,7 +5,7 @@ include_once("ModelLogin.php");
 class ModelSchematicNodes{
 	private $db_conn;
 	private $modelLogin;
-	
+
 	function __construct($db_conn){
 		$this->db_conn = $db_conn;
 		$this->modelLogin = new ModelLogin($db_conn);
@@ -51,11 +51,46 @@ class ModelSchematicNodes{
 		return $isDefined;
 	}
 	
+    function extractClassNameAndParent($nodeClassContent, $isHex = true){
+        #
+        #	Extract node parent from it's code using regular expression
+        #		- what is strange to make regex running properly it needs to be wrap with some delimiter therefore there at start and end delimiter ~
+        #		- stackoverflow issue: https://stackoverflow.com/questions/20705399/warning-preg-replace-unknown-modifier
+        #
+        $regexPattern = '~[\/\s\n]*([a-zA-Z0-9\.\-\_]+)[\s]*=[\s]*([a-zA-Z0-9\.\-_]+)\.extend~';
+
+        $codeStr = $nodeClassContent;
+        if ($isHex) $codeStr = hex2bin($codeStr);
+
+        $regexMatchGroups = array();
+        preg_match($regexPattern, $codeStr, $regexMatchGroups);
+
+        $output = null;
+
+        if (count($regexMatchGroups) > 0){
+            $nodeClassName = null;
+            $nodeClassParent = null;
+
+            try {
+                $nodeClassName = $regexMatchGroups[1];    #get class name from content
+                $nodeClassParent = $regexMatchGroups[2];    #get class parent from content
+            }catch(Exception $e){
+                // DO NOTHING
+            }
+            $output["nodeClassName"] = $nodeClassName;
+            $output["nodeClassParent"] = $nodeClassParent;
+        }
+
+        return $output;
+    }
+
 	/**
 	 *	Store node into DB for user and project, if node is already defined it will do UPDATE instead of INSERT
 	 */
 	function saveNode($userOwner, $projectId, $nodeClassName, $nodeClassContent, $nodeClassParent = "", $nodeLanguage = "", $nodeDir = "", $nodeDisplayName = "", $nodeIsHidden = false, $nodeCategoryName = ""){
 		$outputStr = "";
+		$outputArray = array();
+
 		$isNodeDefined = $this->isNodeDefined($userOwner, $projectId, $nodeClassName, $nodeLanguage);
 
 		$nodeInternalId = -1;
@@ -67,7 +102,7 @@ class ModelSchematicNodes{
 		#		- what is strange to make regex running properly it needs to be wrap with some delimiter therefore there at start and end delimiter ~
 		#		- stackoverflow issue: https://stackoverflow.com/questions/20705399/warning-preg-replace-unknown-modifier
 		#
-		$regexPattern = '~[\/\s\n]*([a-zA-Z0-9\.\-\_]+)[\s]*=[\s]*([a-zA-Z0-9\.\-]+)\.extend~';	
+		$regexPattern = '~[\/\s\n]*([a-zA-Z0-9\.\-\_]+)[\s]*=[\s]*([a-zA-Z0-9\.\-_]+)\.extend~';
 		$codeStr = hex2bin($nodeClassContent);
 		$regexMatchGroups = array();
 		preg_match($regexPattern, $codeStr, $regexMatchGroups);
@@ -78,7 +113,7 @@ class ModelSchematicNodes{
 			$outputStr .= "regex group found, name: ". $nodeClassName ."\n";
 			$outputStr .= "regex group found, parent: ". $nodeClassParent ."\n";
 		}else{
-			echo("regex NOT FOUND using parent from POST\n");
+            echo("regex NOT FOUND using parent from POST\n");
 		}
 
 		$queryStr = "";
@@ -90,7 +125,7 @@ class ModelSchematicNodes{
 			$queryStr .= ", node_directory='$nodeDir'";
 			$queryStr .= ", node_language='$nodeLanguage'";
 			$queryStr .= ", node_display_name='$nodeDisplayName'";
-			$queryStr .= ", node_isHidden=$nodeIsHidden";
+			$queryStr .= ", node_isHidden=".($nodeIsHidden?"true":"false");
 			$queryStr .= " WHERE";
 			//$queryStr .= "  node_owner=$userOwner";
 			//$queryStr .= "  AND node_project=$projectId";
@@ -121,7 +156,7 @@ class ModelSchematicNodes{
             $queryStr .= ", UNHEX('$nodeClassContent')";
             $queryStr .= ", '$nodeDir'";
             $queryStr .= ", '$nodeLanguage'";
-            $queryStr .= ", $nodeIsHidden";
+            $queryStr .= ", ".($nodeIsHidden?"true":"false");
             $queryStr .= ");";
 
 			$outputStr .= "saveNode() - INSERT is used\n";
@@ -130,7 +165,7 @@ class ModelSchematicNodes{
             if ($result === TRUE) {
                 $nodeInternalId = $this->db_conn->insert_id;
             } else {
-                $outputStr .= "ERROR: ". $conn->error ."\n";
+                $outputStr .= "ERROR: ". $this->db_conn->error ."\n";
             }
 		}
 		$affected_rows = $this->db_conn->affected_rows;
@@ -172,7 +207,8 @@ class ModelSchematicNodes{
             $outputStr .= "No category defined for node.\n";
         }
 
-		return $outputStr;
+        $outputArray["message"] = $outputStr;
+		return $outputArray;
 	}
 	
 	##
@@ -235,15 +271,17 @@ class ModelSchematicNodes{
 
 		$orderedNodesList = $this->getOrderedNodesForProject($userOwner, $projectId);
 		
-		foreach ($orderedNodesList as $node){
+		$outputStr = "";
+        foreach ($orderedNodesList as $node){
 			$queryStr = "SELECT node_content_code FROM storage_schematic_blocks WHERE internal_id=". $node['internal_id'] ." AND node_owner=$userOwner AND node_project=$projectId;";
 			$result = $this->db_conn->query($queryStr);
 			foreach ($result as $row) {
-				echo($row['node_content_code']);
-				echo("\n");
+                $outputStr .= $row['node_content_code'];
+				$outputStr .= "\n";
 			}
 		}
-		echo("\n");
+        $outputStr .= "\n";
+		return $outputStr;
 	}
 
     /**
@@ -622,15 +660,33 @@ class ModelSchematicNodes{
         return $outputArray;
     }
 
-    function updateNodeCodeContent($userOwner, $projectId, $nodeClassName, $nodeClassContent, $hexFormat = false){
+    function updateNodeClassParent($newNodeClassParent, $userOwner, $projectId, $nodeClassName, $nodeId = null){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
+        $queryStr = "UPDATE storage_schematic_blocks SET node_class_parent='$newNodeClassParent' WHERE node_owner=$userOwner AND node_project=$projectId";
+        if ($nodeId) $queryStr .= " AND internal_id=$nodeId;";
+        else $queryStr .= " AND node_class_name='$nodeClassName';";
+
+        $result = $this->db_conn->query($queryStr);
+
+        return $this->db_conn->affected_rows;
+    }
+
+    function updateNodeCodeContent($userOwner, $projectId, $nodeClassName, $nodeClassContent = null, $hexFormat = false, $nodeId = null){
         $userOwner = (int) $userOwner;
         $projectId = (int) $projectId;
 
         if ($hexFormat){
-            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code=UNHEX('$nodeClassContent') WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code=UNHEX('$nodeClassContent') WHERE node_owner=$userOwner AND node_project=$projectId";
+            if ($nodeId) $queryStr .= " AND internal_id=$nodeId;";
+            else $queryStr .= " AND node_class_name='$nodeClassName';";
         }else{
-            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code='$nodeClassContent' WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+            $queryStr = "UPDATE storage_schematic_blocks SET node_content_code='$nodeClassContent' WHERE node_owner=$userOwner AND node_project=$projectId";
+            if ($nodeId) $queryStr .= " AND internal_id=$nodeId;";
+            else $queryStr .= " AND node_class_name='$nodeClassName';";
         }
+        //echo($queryStr);
         $result = $this->db_conn->query($queryStr);
 
         return $this->db_conn->affected_rows;
@@ -709,7 +765,8 @@ class ModelSchematicNodes{
         $outputStatus = array("status" => 0, 'errorMsg' => "");
 
         $queryStr = "SELECT internal_id FROM storage_schematic_blocks WHERE node_owner=$userId AND node_project=$projectId AND node_class_name='$nodeClassName';";
-        echo($queryStr);
+        #echo($queryStr);
+
         $result = $this->db_conn->query($queryStr);
         $originalNodeId = -1;
         if ($result){
@@ -761,16 +818,19 @@ class ModelSchematicNodes{
 
             $newContentCodeHex = bin2hex($newContentCode);
 
-            $outputStatus["changedNodes"][$currentNodeId] = array();
-
             $queryStr = "UPDATE storage_schematic_blocks SET node_content_code=UNHEX('$newContentCodeHex') WHERE internal_id=$currentNodeId;";
             $result = $this->db_conn->query($queryStr);
 
             if (!$result){
+                $outputStatus["changedNodes"][$currentNodeId] = array();
                 $outputStatus["changedNodes"][$currentNodeId]["status"] = -1;
                 $outputStatus["changedNodes"][$currentNodeId]["error"] = $this->db_conn->error;
             }else{
-                $outputStatus["changedNodes"][$currentNodeId]["status"] = 1;
+                if ($this->db_conn->affected_rows > 0){
+                    $outputStatus["changedNodes"][$currentNodeId] = array();
+                    $outputStatus["changedNodes"][$currentNodeId]["status"] = 1;
+                    $outputStatus["changedNodes"][$currentNodeId]["message"] = "Node content was changed because it contains node class name, change: $originalNodeClassName -> $newNodeClassName";
+                }
             }
         }
 

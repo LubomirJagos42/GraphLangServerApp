@@ -1,10 +1,16 @@
 <?php
+include_once("ModelLogin.php");
+include_once("ModelProject.php");
+
 class ModelDirectory
 {
     private $db_conn;
+    private $modelLogin;
 
     function __construct($db_conn){
         $this->db_conn = $db_conn;
+        $this->modelLogin = new ModelLogin($db_conn);
+        $this->modelProject = new modelProject($db_conn);
     }
 
     function getIdeHtmlIncludeDirPrefix($version = ""){
@@ -122,6 +128,17 @@ class ModelDirectory
             // Zip archive will be created only after closing object
             $zip->close();
         }
+    }
+
+    function createCurrentUserProjectTempDir($userId, $projectId){
+        $rootDir = "_temp";
+        $fileBaseName = "GraphLangIDE_user_" . $userId . "_project_" . $projectId;
+        $tempDir = $rootDir . DIRECTORY_SEPARATOR . $fileBaseName;
+
+        @mkdir($rootDir);   //just to be sure there will be temporary dir created, if already exists this do nothing, warnings are suppressed
+        @mkdir($tempDir);
+
+        return $tempDir;
     }
 
 }

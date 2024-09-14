@@ -68,12 +68,18 @@ include_once("application/ControllerOsCommands.php");
 		$controller->doDownloadIde();
 	}else if($q == "deleteProject"){
 		$controller->doDeleteProject();
+	}else if($q == "compileProject"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doCompileProject();
 	}else if($q == "categoryOperation"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doCategoryOperation();
 	}else if($q == "nodeOperation"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doNodeOperation();
+	}else if($q == "nodeUpload"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doNodeUpload();
 	}else if ($q == "runPythonCppDebugServer"){
 		$controllerOsCommands->doRunPythonCppDebugServer();
 	}else{
