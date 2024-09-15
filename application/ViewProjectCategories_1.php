@@ -6,6 +6,11 @@
             }
         </style>
 
+        <script type="text/javascript">
+            GraphLang = {};
+        </script>
+        <script src="<?php echo $htmlIncludeDirPrefix; ?>/GraphLangUtils/Utils.js"></script>
+
         <script type="text/javascript" src="javascript/utils.js"></script>
         <script type="text/javascript">
             addEventListener("load", (event) => {
@@ -65,7 +70,7 @@
                     let category_id = -1;
                     let project_id = -1;
 
-                    if (['DELETE', 'MOVE', 'COPY'].indexOf(element.value) > -1) node_id = element.closest('td').querySelector('input[name="node_id"]').value;
+                    if (['DELETE', 'MOVE', 'COPY', 'DELETE NODE'].indexOf(element.value) > -1) node_id = element.closest('td').querySelector('input[name="node_id"]').value;
                     if (['DELETE', 'MOVE', 'COPY', 'DELETE CATEGORY', 'RENAME CATEGORY'].indexOf(element.value) > -1) category_id = element.closest('td').querySelector('input[name="category_id"]').value;
                     project_id = document.querySelector('input[name="project_id"]').value;
 
@@ -306,6 +311,8 @@
                                 console.warn(`RENAME CATEGORY ERROR: ${response.errorMsg}`);
                             }
                         });
+                    } else if (element.value == "DELETE NODE") {
+                        alert(`Deleting node: projectId [${project_id}], nodeId [${node_id}]\nNOT IMPLEMENTED YET!`);
                     }
                 }
 
@@ -380,6 +387,7 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
         <td></td>
         <td></td>
         <td></td>
+        <td></td>
     </tr>
     <?php
     foreach($categoryNodes as $node){
@@ -411,6 +419,10 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
             </td>
             <td><a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit symbol</a></td>
             <td><a href="?q=ide&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit schematic</a></td>
+            <td>
+                <input type="button" value="DELETE NODE"/>
+                <input name="node_id" type="hidden" value="<?= $node['id'] ?>"/>
+            </td>
         </tr>
         <?php
     }
@@ -429,6 +441,7 @@ foreach ($emptyCategories as $category){
             <input name="category_name" type="hidden" value="<?= $category['name'] ?>"/>
         </td>
         <td><?= $category["id"] ?></td>
+        <td></td>
         <td></td>
         <td></td>
         <td></td>

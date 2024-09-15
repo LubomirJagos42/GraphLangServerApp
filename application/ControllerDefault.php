@@ -328,6 +328,8 @@ class ControllerDefault extends ControllerParent{
             $categoriesIdNamesList = $this->modelSchematicNodes->getAllProjectCategories($currentProjectId);
             $viewType = isset($_GET["viewType"]) ? $_GET["viewType"] : null;
 
+            $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion);
+
             if ($viewType == "1") include("ViewProjectCategories_2.php");
             else include("ViewProjectCategories_1.php");
         }else{
@@ -851,8 +853,10 @@ class ControllerDefault extends ControllerParent{
             /*
              *  Check if user is owner of node, if not do not continue
              */
-            $operation = $this->getVariableFromPost("operation", "");
-            $nodeClassName = $this->getVariableFromPost("nodeClassName", "");
+            $operation = $this->getVariableFromGet("operation", "");
+            if ($operation == "") $this->getVariableFromPost("operation", "");
+            $nodeClassName = $this->getVariableFromGet("nodeClassName", "");
+            if ($nodeClassName == "") $this->getVariableFromPost("nodeClassName", "");
 
             $nodeNewDisplayName = $this->getVariableFromPost("nodeNewDisplayName", "");
             $nodeNewClassName = $this->getVariableFromPost("nodeNewClassName", "");
@@ -899,6 +903,8 @@ class ControllerDefault extends ControllerParent{
                 $result["output"] = $this->modelSchematicNodes->getNode($nodeId, $userOwner, $projectId, $nodeClassName, true);
             }else if ($operation == "changeNodeCodeContent"){
                 $result = $this->modelSchematicNodes->updateNodeCodeContent($userOwner, $projectId, $nodeClassName, $nodeNewCodeContent, true);
+            }else if ($operation == "deleteNode"){
+                $result = $this->modelSchematicNodes->deleteNode($userOwner, $projectId, $nodeId, $nodeClassName);
             }else{
                 $result["errorMsg"] = "node operation not recognized";
             }

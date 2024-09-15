@@ -3,6 +3,11 @@
         <style type="text/css">
         </style>
 
+        <script type="text/javascript">
+            GraphLang = {};
+        </script>
+        <script src="<?php echo $htmlIncludeDirPrefix; ?>/GraphLangUtils/Utils.js"></script>
+
         <script type="text/javascript" src="javascript/utils.js"></script>
         <script type="text/javascript">
             addEventListener("load", (event) => {
@@ -63,7 +68,7 @@
                     let category_id = -1;
                     let project_id = -1;
 
-                    if (['DELETE', 'MOVE', 'COPY'].indexOf(element.value) > -1) node_id = element.closest('div').querySelector('input[name="node_id"]').value;
+                    if (['DELETE', 'MOVE', 'COPY', 'DELETE NODE'].indexOf(element.value) > -1) node_id = element.closest('div').querySelector('input[name="node_id"]').value;
                     if (['DELETE', 'MOVE', 'COPY', 'DELETE CATEGORY', 'RENAME CATEGORY'].indexOf(element.value) > -1) category_id = element.closest('div').querySelector('input[name="category_id"]').value;
                     project_id = document.querySelector('input[name="project_id"]').value;
 
@@ -302,6 +307,8 @@
                                 console.warn(`RENAME CATEGORY ERROR: ${response.errorMsg}`);
                             }
                         });
+                    } else if (element.value == "DELETE NODE") {
+                        alert(`Deleting node: projectId [${project_id}], nodeId [${node_id}]\nNOT IMPLEMENTED YET!`);
                     }
                 }
 
@@ -383,6 +390,7 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
             <div style="background: none; width: 100%; text-align: center;"><?= $node["className"] ?></div>
             <br />
             <div>
+                <input name="deleteNodeButton" type="button" value="DELETE NODE"/><br />
                 <a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className']?>">edit symbol</a>
                 <br />
                 <a href="?q=ide&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit schematic</a>

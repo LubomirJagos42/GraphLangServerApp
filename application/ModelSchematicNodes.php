@@ -875,6 +875,54 @@ class ModelSchematicNodes{
         return $this->db_conn->affected_rows;
     }
 
+    function deleteNode($userId = -1, $projectId = -1, $nodeId = -1, $nodeClassName = ""){
+        $outputArray = array("status" => 0, "errorMsg" => "", "message" => "");
+        $nodeId = (int) $nodeId;
+        $projectId = (int) $projectId;
+
+        if ($userId == -1 || $projectId == -1){
+            $outputArray["message"] = "Node delete - projectId [$projectId] or userId [$userId] are not defined, must be provided!";
+            return $outputArray;
+        }
+
+        #
+        #   Node identificator provided using class name
+        #
+        if ($nodeId == -1){
+            $queryStr = "SELECT internal_id FROM storage_schematic_blocks WHERE node_owner=$userId AND node_project=$projectId AND node_class_name='$nodeClassName';";
+            $result = $this->db_conn->query($queryStr);
+            if ($result && $result->num_rows > 0){
+                $nodeId = $result->fetch_row()[0];
+            }
+            if ($nodeId == -1){
+                $outputArray["errorMsg"] = "Node delete - node not found based on it node class name";
+                return $outputArray;
+            }
+        }
+
+        $queryStr = "DELETE FROM nodes_to_category_assignment WHERE node_id=$nodeId;";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            $outputArray["errorMsg"] .= $this->db_conn->error;
+            return $outputArray;
+        }
+
+        $queryStr = "DELETE FROM storage_schematic_blocks WHERE internal_id=$nodeId AND node_owner=$userId AND node_project=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            $outputArray["errorMsg"] .= $this->db_conn->error;
+            return $outputArray;
+        }
+        if ($this->db_conn->affected_rows == 0){
+            $outputArray["errorMsg"] .= "Node delete - no node was deleted from nodes storage.";
+            return $outputArray;
+        }
+
+        $outputArray["status"] = 1;
+        $outputArray["message"] = "Node delete - deleted from categories and node deleted - OK";
+        return $outputArray;
+    }
+
     function deleteNodeFromCategory($nodeId, $categoryId){
         $categoryId = (int) ($categoryId != "" ? $categoryId : -1);
         $nodeId = (int) $nodeId;
