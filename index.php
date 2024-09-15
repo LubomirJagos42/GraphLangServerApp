@@ -81,6 +81,7 @@ include_once("application/ControllerOsCommands.php");
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doNodeUpload();
 	}else if ($q == "runPythonCppDebugServer"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controllerOsCommands->doRunPythonCppDebugServer();
 	}else{
 		$controller->doNotFound();

@@ -99,6 +99,9 @@ class ControllerDefault extends ControllerParent{
             $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProject);
             $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
 
+            $nodeId = $this->getVariableFromGet("nodeId", -1);
+            $nodeClassName = $this->getVariableFromGet("nodeClassName", "");
+
             $ideVersion = $this->modelProject->getProjectVersion($currentProject);
             $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion);
             if ($ideVersion != ""){
@@ -721,9 +724,9 @@ class ControllerDefault extends ControllerParent{
             $nodeInfo = $this->modelSchematicNodes->getNodeCodeContent($userOwner, $projectId, $nodeClassName, true);
 
             if (!empty($nodeInfo)){
-                echo('{"error": "OK", "nodeContent": "'. $nodeInfo["nodeContentCode"] .'", "nodeClassName": "'. $nodeInfo["nodeClassName"] .'", "nodeClassParent": "'. $nodeInfo["nodeClassParent"] .'"}');
+                echo('{"error": "OK", "nodeContent": "'. $nodeInfo["nodeContentCode"] .'", "nodeClassName": "'. $nodeInfo["nodeClassName"] .'", "nodeClassParent": "'. $nodeInfo["nodeClassParent"] .'", "nodeDisplayName": "'. $nodeInfo["nodeDisplayName"] .'"}');
             }else{
-                echo('{"error": "No node was returned!", "nodeContent": "", "nodeClassName": "", "nodeClassParent": ""}');
+                echo('{"error": "No node was returned!", "nodeContent": "", "nodeClassName": "", "nodeClassParent": "", "nodeDisplayName": ""}');
             }
         }else{
             echo('{"error": "User not logged!", "nodeContent": "", "nodeClassName": "", "nodeClassParent": ""}');
@@ -1081,6 +1084,14 @@ class ControllerDefault extends ControllerParent{
                 if ($nodeNameAndParentFromCode["nodeClassParent"] != $nodeInfo['node_class_parent']){
                     $affectedRows = $this->modelSchematicNodes->updateNodeClassParent($nodeNameAndParentFromCode["nodeClassParent"], $userOwner, $projectId, "", $nodeId);
                     if ($affectedRows > 0) $result["message"] .= "Node upload - UPDATE based on nodeId - node id ".$nodeId." - update class parent on $affectedRows row\n";
+                }
+
+                #
+                #   Change display name if available
+                #
+                if ($nodeDisplayName != ""){
+                    $changeDisplayNameResult = $this->modelSchematicNodes->updateNodeDisplayName($nodeDisplayName, $nodeId, $userOwner, $projectId);
+                    $result["changeDisplayNameResult"] = $changeDisplayNameResult;
                 }
 
             }else if ($nodeClassName){

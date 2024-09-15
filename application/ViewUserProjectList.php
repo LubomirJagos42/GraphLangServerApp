@@ -55,12 +55,12 @@
                 <td><img width="100px" src="<?php echo($projectItem["image"]); ?>" /></td>
                 <td><?php echo($projectItem["visibility"]); ?></td>
                 <td><?php echo($projectItem["codeTemplate"]); ?></td>
+                <td><a href="?q=ide&projectId=<?php echo($projectItem["id"]); ?>">NEW SCHEMATIC</a></td>
+                <td><a href="?q=shapeDesigner&projectId=<?php echo($projectItem["id"]); ?>">NEW SYMBOL</a></td>
                 <td><a href="?q=updateProjectDetails&projectId=<?php echo($projectItem["id"]); ?>">change details</a></td>
-                <td><a href="?q=ide&projectId=<?php echo($projectItem["id"]); ?>">open</a></td>
-                <td><a href="?q=deleteProject&projectId=<?php echo($projectItem["id"]); ?>">delete</a></td>
                 <td><a href="?q=projectCategoriesNodesEditor&projectId=<?php echo($projectItem["id"]); ?>">categories editor</a></td>
+                <td><a href="?q=deleteProject&projectId=<?php echo($projectItem["id"]); ?>">delete</a></td>
                 <td><a href="?q=downloadIde&projectId=<?php echo($projectItem["id"]); ?>">download</a></td>
-                <td><a href="?q=shapeDesigner&projectId=<?php echo($projectItem["id"]); ?>">shape designer</a></td>
                 <?php if ($debugMode){ ?><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><?php } ?>
                 <?php if ($debugMode){ ?><td><a href="?q=getOrderedNodes&projectId=<?php echo($projectItem["id"]); ?>">nodes list</a></td><?php } ?>
                 <?php if ($debugMode){ ?><td><a href="?q=getJavascriptForNodes&projectId=<?php echo($projectItem["id"]); ?>">JS for IDE</a></td><?php } ?>

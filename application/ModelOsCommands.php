@@ -13,6 +13,7 @@ class ModelOsCommands{
     }
 
     function windowsRunCommand($runPath, $startDir){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
         $pid = -1;
 
         //Get Operating System
@@ -35,8 +36,8 @@ class ModelOsCommands{
             }
             else
             {
-                echo("Failed to execute!");
-                exit();
+                $result["errorMsg"] = "Failed to execute!";
+                return $result;
             }
             $output = array_filter(explode(" ", shell_exec("wmic process get parentprocessid,processid | find \"$pid\"")));
             array_pop($output);
@@ -67,12 +68,15 @@ class ModelOsCommands{
             }
             else
             {
-                echo("Failed to execute!");
-                exit();
+                $result["errorMsg"] = "Failed to execute!";
+                return $result;
             }
         }
 
-        return array('pid' => $pid, 'resource' => $prog);
+        $result["pid"] = $pid;
+        $result["resource"] = $prog;
+
+        return $result;
     }
 
     function killProcess($pid, $resource = null){

@@ -384,6 +384,8 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
             <br />
             <div>
                 <a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className']?>">edit symbol</a>
+                <br />
+                <a href="?q=ide&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit schematic</a>
                 <br /><br />
                 <input name="copyButton" type="button" value="COPY"/>
                 <select name="add_target_category">

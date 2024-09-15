@@ -641,9 +641,9 @@ class ModelSchematicNodes{
         $projectId = (int) $projectId;
 
         if ($hexFormat){
-            $queryStr = "SELECT node_class_name, node_class_parent, HEX(node_content_code) as node_content_code FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+            $queryStr = "SELECT node_class_name, node_class_parent, node_display_name, HEX(node_content_code) as node_content_code FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
         }else{
-            $queryStr = "SELECT node_class_name, node_class_parent, node_content_code FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
+            $queryStr = "SELECT node_class_name, node_class_parent, node_display_name, node_content_code FROM storage_schematic_blocks WHERE node_owner=$userOwner AND node_project=$projectId AND node_class_name='$nodeClassName';";
         }
         $result = $this->db_conn->query($queryStr);
 
@@ -652,6 +652,7 @@ class ModelSchematicNodes{
         if ($row){
             $outputArray = array(
                 "nodeClassName" => $row["node_class_name"],
+                "nodeDisplayName" => $row["node_display_name"],
                 "nodeClassParent" => $row["node_class_parent"],
                 "nodeContentCode" => $row["node_content_code"]
             );

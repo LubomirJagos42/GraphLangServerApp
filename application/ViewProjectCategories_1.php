@@ -379,6 +379,7 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
         <td></td>
         <td></td>
         <td></td>
+        <td></td>
     </tr>
     <?php
     foreach($categoryNodes as $node){
@@ -409,6 +410,7 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
                 <input name="category_id" type="hidden" value="<?= $node['categoryId'] ?>"/>
             </td>
             <td><a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit symbol</a></td>
+            <td><a href="?q=ide&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit schematic</a></td>
         </tr>
         <?php
     }
@@ -427,6 +429,7 @@ foreach ($emptyCategories as $category){
             <input name="category_name" type="hidden" value="<?= $category['name'] ?>"/>
         </td>
         <td><?= $category["id"] ?></td>
+        <td></td>
         <td></td>
         <td></td>
         <td></td>
