@@ -145,6 +145,31 @@ class ControllerDefault extends ControllerParent{
         }
     }
 
+    function doGraphLangCodeEditor(){
+        $currentUser = $this->modelLogin->getCurrentUserId();
+        $loginInfo = $this->getLoginInfo();
+
+        if ($loginInfo['isLogged'] == 1){
+            $projectId = $this->getVariableFromGet("projectId", -1);
+            if ($projectId == -1) $projectId = $this->getVariableFromPost("projectId", -1);
+            $nodeId = $this->getVariableFromGet("nodeId", "");
+            if ($nodeId == -1) $nodeId = $this->getVariableFromPost("nodeId", -1);
+            $nodeClassName = $this->getVariableFromGet("nodeClassName", "");
+            if ($nodeClassName == "") $nodeClassName = $this->getVariableFromPost("nodeClassName", "");
+
+            $nodeInfo = $this->modelSchematicNodes->getNode($nodeId, $currentUser, $projectId, $nodeClassName);
+
+            $nodeDisplayName = $nodeInfo["node_display_name"];
+
+            include("ViewCodeEditor.php");
+
+        }else if ($loginInfo['isLogged'] == 1 && $currentProject == -1) {
+            $this->doNotFound();
+        }else{
+            $this->doUserLoginForm();
+        }
+    }
+
     function doNotFound(){
 		include("ViewNotFound.php");
 	}
@@ -328,6 +353,8 @@ class ControllerDefault extends ControllerParent{
             $categoriesIdNamesList = $this->modelSchematicNodes->getAllProjectCategories($currentProjectId);
             $viewType = isset($_GET["viewType"]) ? $_GET["viewType"] : null;
 
+            $currentProject = $this->modelLogin->getCurrentUserProjectId();
+            $ideVersion = $this->modelProject->getProjectVersion($currentProject);
             $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion);
 
             if ($viewType == "1") include("ViewProjectCategories_2.php");
@@ -930,6 +957,7 @@ class ControllerDefault extends ControllerParent{
         if ($loginInfo["isLogged"] == 1) {
             $currentUser = $this->modelLogin->getCurrentUserId();
             $currentProject = $this->modelLogin->getCurrentUserProjectId();
+            $ideVersion = $this->modelProject->getProjectVersion($currentProject);
 
             #
             #   Create project output directory
@@ -972,7 +1000,7 @@ class ControllerDefault extends ControllerParent{
 
             $compileCommand = "";
             $compileCommand .= "python";
-            $compileCommand .= ' "'.dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix("0v1").DIRECTORY_SEPARATOR."python_tools".DIRECTORY_SEPARATOR.'compileCppCode.py"';
+            $compileCommand .= ' "'.dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion).DIRECTORY_SEPARATOR."python_tools".DIRECTORY_SEPARATOR.'compileCppCode.py"';
             $compileCommand .= ' "'.$fileToCompileAbsolutePath.'"';
             $compileCommand .= ' "'.$compileFileOutputAbsolutePath.'"';
             $compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \

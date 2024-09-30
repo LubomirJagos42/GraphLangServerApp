@@ -3,12 +3,8 @@
         <style type="text/css">
         </style>
 
-        <script type="text/javascript">
-            GraphLang = {};
-        </script>
-        <script src="<?php echo $htmlIncludeDirPrefix; ?>/GraphLangUtils/Utils.js"></script>
-
         <script type="text/javascript" src="javascript/utils.js"></script>
+
         <script type="text/javascript">
             addEventListener("load", (event) => {
 
@@ -308,7 +304,19 @@
                             }
                         });
                     } else if (element.value == "DELETE NODE") {
-                        alert(`Deleting node: projectId [${project_id}], nodeId [${node_id}]\nNOT IMPLEMENTED YET!`);
+                        //alert(`Deleting node: projectId [${project_id}], nodeId [${node_id}]\nNOT IMPLEMENTED YET!`);
+
+                        serverAjaxPostSendReceive(
+                            ["q", "nodeOperation", "operation", "deleteNode"],
+                            ["projectId", project_id, "nodeId", node_id],
+                            function(){
+                                if (GLOBAL_AJAX_RESPONSE.status){
+                                    element.closest("div[class='nodeBlock']").remove();
+                                }else{
+                                    alert(GLOBAL_AJAX_RESPONSE.errorMsg);
+                                }
+                            }
+                        );
                     }
                 }
 
@@ -394,6 +402,8 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
                 <a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className']?>">edit symbol</a>
                 <br />
                 <a href="?q=ide&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit schematic</a>
+                <br />
+                <a href="?q=codeEditor&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit code</a>
                 <br /><br />
                 <input name="copyButton" type="button" value="COPY"/>
                 <select name="add_target_category">

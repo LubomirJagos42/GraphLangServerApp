@@ -26,6 +26,8 @@ include_once("application/ControllerOsCommands.php");
 		$controller->doGraphLangIDE();	
 	}else if($q == "shapeDesigner"){
 		$controller->doGraphLangShapeDesigner();
+	}else if($q == "codeEditor"){
+		$controller->doGraphLangCodeEditor();
 	}else if($q == "loadNodesFromServer"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doLoadNodesFromServer();	

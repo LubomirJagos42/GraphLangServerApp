@@ -358,6 +358,7 @@ class ModelSchematicNodes{
         $queryStr .= "	  project_categories.category_name,";
         $queryStr .= "    storage_schematic_blocks.node_display_name;";
 
+        //echo("<!-- $queryStr -->");
         $result = $this->db_conn->query($queryStr);
 
         $nodesByCategories = array();
@@ -895,7 +896,7 @@ class ModelSchematicNodes{
                 $nodeId = $result->fetch_row()[0];
             }
             if ($nodeId == -1){
-                $outputArray["errorMsg"] = "Node delete - node not found based on it node class name";
+                $outputArray["errorMsg"] = "Node delete - nodeId [$nodeId], node not found based on it node class name";
                 return $outputArray;
             }
         }
