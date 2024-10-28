@@ -85,6 +85,9 @@ include_once("application/ControllerOsCommands.php");
 	}else if ($q == "runPythonCppDebugServer"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controllerOsCommands->doRunPythonCppDebugServer();
+	}else if ($q == "registerUserViaEmail"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doRegisterUserViaEmail();
 	}else{
 		$controller->doNotFound();
 	}

@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 15, 2024 at 03:22 AM
+-- Generation Time: Oct 28, 2024 at 03:54 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.2.24
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -41,12 +41,14 @@ CREATE TABLE `active_users` (
 --
 
 INSERT INTO `active_users` (`internal_id`, `name`, `email`, `password`, `last_logged`, `token`) VALUES
-(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2024-09-15 03:15:25', 'f410192ea9f23ea3497b74fc915194da'),
+(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2024-10-28 15:53:35', 'e6da110d09208a5c8cb3b9d94562c166'),
 (2, 'GraphLang_Core', 'graphlang@core.com', '6a284155906c26cbca20c53376bc63ac', '2024-07-07 08:54:02', 'a0a13e794e50ede8cad6349dccd6d73b'),
 (4, 'John Doe', 'john.doe.nonexisting.guy@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
 (5, 'Lucy Skyler', 'lucy.skyler.nonexsiting@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
 (6, 'system_blocks', 'system@core.com', '6a284155906c26cbca20c53376bc63ac', NULL, ''),
-(7, 'User A', 'a@a.com', '6a284155906c26cbca20c53376bc63ac', '2024-07-07 18:45:36', '23905fab347a8a729ab0114f8d0229d4');
+(7, 'User A', 'a@a.com', '6a284155906c26cbca20c53376bc63ac', '2024-07-07 18:45:36', '23905fab347a8a729ab0114f8d0229d4'),
+(8, 'thomas', 'thomas@thomas.eu', 'ef6e65efc188e7dffd7335b646a85a21', '2024-10-17 17:08:08', '9a48fffb55ad09b85cb1b78de81d7456'),
+(9, 'ggg', 'ggg@ggg.eu', 'ba248c985ace94863880921d8900c53f', '2024-10-17 17:09:15', 'db7cd5e72632f046e923f62246bd0c6b');
 
 -- --------------------------------------------------------
 
@@ -74,20 +76,6 @@ CREATE TABLE `nodes_to_category_assignment` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `os_commands_status`
---
-
-CREATE TABLE `os_commands_status` (
-  `user_id` int(11) NOT NULL,
-  `project_id` int(11) NOT NULL,
-  `operating_system` varchar(500) DEFAULT NULL,
-  `status` varchar(1000) DEFAULT NULL,
-  `latest_run_time` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `project_categories`
 --
 
@@ -95,6 +83,20 @@ CREATE TABLE `project_categories` (
   `internal_id` int(11) NOT NULL,
   `category_name` varchar(1000) NOT NULL,
   `project_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `registration_waiting_users`
+--
+
+CREATE TABLE `registration_waiting_users` (
+  `name` varchar(1000) NOT NULL,
+  `email` varchar(1000) NOT NULL,
+  `password` varchar(1000) NOT NULL,
+  `token` varchar(1000) NOT NULL,
+  `last_update` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -148,7 +150,7 @@ CREATE TABLE `user_projects` (
   `project_description` text DEFAULT NULL,
   `project_code_template` varchar(1000) NOT NULL,
   `project_language` varchar(100) NOT NULL,
-  `project_isTemplate` tinyint(1) DEFAULT NULL
+  `project_isTemplate` tinyint(1) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -170,17 +172,16 @@ ALTER TABLE `nodes_to_category_assignment`
   ADD KEY `foreignKeyNodeId` (`node_id`);
 
 --
--- Indexes for table `os_commands_status`
---
-ALTER TABLE `os_commands_status`
-  ADD KEY `foreignKeyUserId` (`user_id`),
-  ADD KEY `foreignKeyProjectId` (`user_id`);
-
---
 -- Indexes for table `project_categories`
 --
 ALTER TABLE `project_categories`
   ADD PRIMARY KEY (`internal_id`);
+
+--
+-- Indexes for table `registration_waiting_users`
+--
+ALTER TABLE `registration_waiting_users`
+  ADD UNIQUE KEY `unique_email` (`email`) USING HASH;
 
 --
 -- Indexes for table `storage_media`
@@ -208,7 +209,7 @@ ALTER TABLE `user_projects`
 -- AUTO_INCREMENT for table `active_users`
 --
 ALTER TABLE `active_users`
-  MODIFY `internal_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `internal_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `project_categories`

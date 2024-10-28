@@ -362,8 +362,12 @@
 <input name="project_id" type="hidden" value="<?= $currentProjectId ?>"/>
 
 <p>NOTE: Buttons are implemented, this is in development.</p>
-<a href='?q=userProjectList'>Back to project list</a>
-<a href='?q=projectCategoriesNodesEditor&projectId=<?= $currentProjectId ?>&viewType=1'>View as grid</a><br /><br />
+
+<a href='?q=userProjectList'>Back to project list</a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href='?q=projectCategoriesNodesEditor&projectId=<?= $currentProjectId ?>&viewType=1'>View as grid</a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="?q=ide&projectId=<?= $currentProjectId ?>">NEW SCHEMATIC</a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>">NEW SYMBOL</a>&nbsp;&nbsp;&nbsp;&nbsp;
+<br /><br />
 
 <table id="newCategoryEditor">
     <tr>
@@ -404,7 +408,15 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
             <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?= $node['displayName'] ?></td>
             <td><?= $node['className'] ?></td>
             <td><?= $node['id'] ?></td>
-            <td><img width='120px' src='<?= $node['image'] ?>' /></td>
+            <td style="text-align: center;">
+            <?php
+                if ($node['image']){
+                    echo('<img width="120px" src="'.$node['image'].'" alt="no image" />');
+                }else{
+                    echo('<span>NO IMAGE</span>');
+                }
+            ?>
+            </td>
             <td>
                 <input name="copyButton" type="button" value="COPY"/>
                 <select name="add_target_category">

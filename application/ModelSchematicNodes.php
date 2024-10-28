@@ -332,15 +332,30 @@ class ModelSchematicNodes{
         $userOwner = (int) $userOwner;
         $projectId = (int) $projectId;
 
-        $queryStr = "";
+        /*
+         * To extract symbol picture from DB there is used this in SQL query what is doing followin:
+         *      1. get substring from node code using REGEXP_SUBSTR(), this will just extract substring line with symbol picture
+         *      2. using non-greedy regexp (that's done adding ? after repeat specificator *) to get just text between quotes
+         *      3. replace everything with matched group what is base64 enoded picture in node code
+         *
+              REGEXP_REPLACE(
+                REGEXP_SUBSTR(
+                  object,
+                  'symbolPicture: "(.*)"'
+                ),
+                '.*?"(.*?)".*',
+                '\\1'
+              ) as nodeImageBase64
+        */
 
+        $queryStr = "";
         $queryStr .= "SELECT";
         $queryStr .= "    project_categories.internal_id AS categoryId,";
         $queryStr .= "    project_categories.category_name AS categoryName,";
         $queryStr .= "    storage_schematic_blocks.internal_id AS nodeId,";
         $queryStr .= "    storage_schematic_blocks.node_class_name AS nodeClassName,";
         $queryStr .= "    storage_schematic_blocks.node_display_name AS nodeDisplayName,";
-        $queryStr .= "    REGEXP_REPLACE(REGEXP_SUBSTR(storage_schematic_blocks.node_content_code, 'symbolPicture: \"(.*)\"'), '.*\"(.*)\".*', '\\\\1') as nodeImageBase64";
+        $queryStr .= "    REGEXP_REPLACE(REGEXP_SUBSTR(storage_schematic_blocks.node_content_code, 'symbolPicture: \"(.*)\"'), '.*?\"(.*?)\".*', '\\\\1') as nodeImageBase64";
         $queryStr .= " FROM `storage_schematic_blocks`";
         $queryStr .= " LEFT JOIN nodes_to_category_assignment";
         $queryStr .= " ON";
@@ -358,7 +373,6 @@ class ModelSchematicNodes{
         $queryStr .= "	  project_categories.category_name,";
         $queryStr .= "    storage_schematic_blocks.node_display_name;";
 
-        //echo("<!-- $queryStr -->");
         $result = $this->db_conn->query($queryStr);
 
         $nodesByCategories = array();

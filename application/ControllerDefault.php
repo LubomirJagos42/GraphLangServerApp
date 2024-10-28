@@ -99,8 +99,27 @@ class ControllerDefault extends ControllerParent{
             $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProject);
             $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
 
+            /*
+             *  Get node ID and class name from url params from request
+             */
             $nodeId = $this->getVariableFromGet("nodeId", -1);
             $nodeClassName = $this->getVariableFromGet("nodeClassName", "");
+
+            /*
+             *  Try to find node data from DB and put them into variables for view
+             */
+            $currentNodeInfo = $this->modelSchematicNodes->getNode($nodeId, $currentUser, $currentProject, $nodeClassName, true);
+            if ($currentNodeInfo) {
+                $nodeClassName = $currentNodeInfo["node_class_name"];
+                $nodeDisplayName = $currentNodeInfo["node_display_name"];
+                $nodeClassParent = $currentNodeInfo["node_class_parent"];
+                $nodeCodeContent = $currentNodeInfo["node_content_code"];
+            }else{
+                $nodeClassName = "";
+                $nodeDisplayName = "";
+                $nodeClassParent = "";
+                $nodeCodeContent = "";
+            }
 
             $ideVersion = $this->modelProject->getProjectVersion($currentProject);
             $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion);
@@ -1195,6 +1214,63 @@ class ControllerDefault extends ControllerParent{
         #   PRINT RESULT JSON TO OUTPUT
         #
         echo json_encode($result);
+    }
+
+    function doRegisterUserViaEmail(){
+        $username = $this->getVariableFromPost("username", "");
+        $password = $this->getVariableFromPost("password", "");
+        $passwordConfirmation = $this->getVariableFromPost("passwordConfirmation", "");
+        $email = $this->getVariableFromPost("email", "");
+
+        //this is used when user confirm registration after mail was send with token
+        $token = $this->getVariableFromGet("token", "");
+
+        if ($token != "") {
+            /*
+             *  Registration confirmation
+             */
+            $result = $this->modelLogin->confirmRegistration($token);
+
+            echo("Registration confirmation output<br />");
+            echo("<br />\n");
+            var_dump($result);
+            echo("<br />\n");
+            echo("<a href='?q=home'>Back to home</a>\n");
+        }else if ($username == "" || $password == "" || $email == ""){
+            /*
+             *  Default registration form - POST data weren't sent then it means user just want to register new one, therefore display form to do it.
+             */
+            include("ViewRegisterForm.php");
+        }else{
+            /*
+             *  Sending mail - POST data were sent, therefore try to process them and send email with confirmation token to mail address.
+             */
+            $token = md5($username.$email.$password);
+            $resultNewRegistration = $this->modelLogin->addNewUserRegistration($username, md5($password), $email, $token);
+            if ($resultNewRegistration["status"] == 1){
+                $registrationLink = $_SERVER['REQUEST_URI']."&token=$token";
+
+                $receiver = $email;
+                $subject = "GraphLang, confirm registration";
+                $body = "Please confirm your registration on following <br />";
+                $body .= "<a href='".$registrationLink."'>---> link <---</a><br />";
+                $body .= "<br />";
+                $body .= "Link will be active for 24 hours.<br />";
+                $body .= "<br />";
+
+                $this->modelLogin->sendMail($receiver, $subject, $body);
+                echo("<br />\n");
+                echo("<a href='?q=home'>Back to home</a>\n");
+            }else{
+                echo("ERROR DURING REGISTRATION\n");
+                echo("<br />");
+                echo("<br />");
+                echo($resultNewRegistration["error"]);
+                echo("<br />");
+                echo("<br />");
+            }
+
+        }
     }
 
 }

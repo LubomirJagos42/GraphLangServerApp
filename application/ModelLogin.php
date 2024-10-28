@@ -151,5 +151,61 @@ class ModelLogin{
 
         return $username;
     }
+
+    function sendMail($receiver, $subject, $body){
+        //mail($receiver, $subject, $body); //this method will be used, but now commented to disable it
+        echo("MOCKED sendMail():<br/>\n");
+        echo("receiver: $receiver<br/>\n");
+        echo("subject: $subject<br/>\n");
+        echo("body: $body<br/>\n");
+    }
+
+    function addNewUserRegistration($username, $password, $email, $token){
+        $output = array(
+            "status" => 0,
+            "error" => ""
+        );
+
+        $queryStr = "INSERT INTO registration_waiting_users (name, email, password, token, last_update) VALUES ('$username', '$email', '$password', '$token', NOW());\n";
+        $result = $this->db_conn->query($queryStr);
+        if ($this->db_conn->error){
+            $output['status'] = -1;
+            $output['error'] = $this->db_conn->error;
+        }else{
+            $output['status'] = 1;
+        }
+
+        return $output;
+    }
+
+    function confirmRegistration($token){
+        $output = array(
+            "status" => 0,
+            "error" => ""
+        );
+
+        $queryStr = "SELECT * FROM registration_waiting_users WHERE token='$token';";
+        $result = $this->db_conn->query($queryStr);
+        if ($result->num_rows == 1){
+
+            $row = $result->fetch_assoc();
+            $name = $row["name"];
+            $email = $row["email"];
+            $password = $row["password"];
+
+            $queryStr = "INSERT INTO active_users (name, email, password) VALUES ('$name', '$email', '$password');";
+            $result = $this->db_conn->query($queryStr);
+
+            $queryStr = "DELETE FROM registration_waiting_users WHERE email='$email' AND token='$token';";
+            $result = $this->db_conn->query($queryStr);
+
+            $output['status'] = 1;
+        }else{
+            $output['status'] = -1;
+            $output['error'] = "There is some error.";
+        }
+        return $output;
+    }
+
 }
 ?>

@@ -20,6 +20,8 @@ if ($isLogged == false){
             username:<input type="text" name="username" value=""/><br/>
             password:<input type="password" name="password" value=""/><br/>
             <input type="submit" value="login"/>
+            <br /><br />
+            <a href="">forgotten password</a>   <!-- TODO: this needs to be implemented yet -->
         </form>
 <?php
 }else{

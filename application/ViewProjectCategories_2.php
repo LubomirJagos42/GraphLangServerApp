@@ -358,8 +358,10 @@
 <h1>Project categories editor</h1>
 <input name="project_id" type="hidden" value="<?= $currentProjectId ?>"/>
 
-<a href='?q=userProjectList'>Back to project list</a>
-<a href='?q=projectCategoriesNodesEditor&projectId=<?= $currentProjectId ?>'>View as table</a>
+<a href='?q=userProjectList'>Back to project list</a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href='?q=projectCategoriesNodesEditor&projectId=<?= $currentProjectId ?>'>View as table</a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="?q=ide&projectId=<?= $currentProjectId ?>">NEW SCHEMATIC</a>&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>">NEW SYMBOL</a>&nbsp;&nbsp;&nbsp;&nbsp;
 <br />
 <br />
 
@@ -393,7 +395,15 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
     foreach($categoryNodes as $node){
         ?>
         <div class="nodeBlock" style="background: none; float: left; margin: 5px; border: 1px solid black;">
-            <div style="background: none; width: 100%; text-align: center;"><img width='120px' src='<?= $node["image"]?>' /></div>
+            <div style="background: none; width: 100%; text-align: center;">
+                <?php
+                if ($node['image']){
+                    echo('<img width="120px" src="'.$node['image'].'" alt="no image" />');
+                }else{
+                    echo('<span style="display: inline-flex; align-items: center; justify-content: center; width: 120px; height: 120px; background-color: #c7c7c7">NO IMAGE</span>');
+                }
+                ?>
+            </div>
             <div style="background: none; width: 100%; text-align: center;"><?= $node["displayName"] ?></div>
             <div style="background: none; width: 100%; text-align: center;"><?= $node["className"] ?></div>
             <br />
