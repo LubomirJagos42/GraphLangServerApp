@@ -364,9 +364,13 @@ class ControllerDefault extends ControllerParent{
             $currentUserId = $this->modelLogin->getCurrentUserId();
             $currentProjectId = $this->modelLogin->getCurrentUserProjectId();
 
+            $includeHiddenNodes = $this->getVariableFromGet("includeHiddenNodes", false);
+            $includeHiddenNodes = in_array(strtolower($includeHiddenNodes), ["t", "true", "1"]) ? true : false;
+
             $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories(
                 $currentUserId,
-                $currentProjectId
+                $currentProjectId,
+                $includeHiddenNodes
             );
             $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProjectId);
             $categoriesIdNamesList = $this->modelSchematicNodes->getAllProjectCategories($currentProjectId);
@@ -910,6 +914,8 @@ class ControllerDefault extends ControllerParent{
             $nodeNewCodeContent = $this->getVariableFromPost("nodeNewCodeContent", "");
             $nodeNewLanguage = $this->getVariableFromPost("nodeNewLanguage", "");
             $nodeNewParent = $this->getVariableFromPost("nodeNewParent", "");
+
+            $nodeNewIsHidden = in_array($nodeNewIsHidden, array("T", "True", "TRUE", "true", "1", 1)) ? 1 : 0;
 
             /*
              *  Trying to obtain nodeId from:

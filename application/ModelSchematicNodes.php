@@ -328,7 +328,7 @@ class ModelSchematicNodes{
         return $alreadyDefinedObjects;
     }
 
-    function getNodesWithCategories($userOwner, $projectId){
+    function getNodesWithCategories($userOwner, $projectId, $includeHidden=false){
         $userOwner = (int) $userOwner;
         $projectId = (int) $projectId;
 
@@ -355,6 +355,7 @@ class ModelSchematicNodes{
         $queryStr .= "    storage_schematic_blocks.internal_id AS nodeId,";
         $queryStr .= "    storage_schematic_blocks.node_class_name AS nodeClassName,";
         $queryStr .= "    storage_schematic_blocks.node_display_name AS nodeDisplayName,";
+        $queryStr .= "    storage_schematic_blocks.node_isHidden AS node_isHidden,";
         $queryStr .= "    REGEXP_REPLACE(REGEXP_SUBSTR(storage_schematic_blocks.node_content_code, 'symbolPicture: \"(.*)\"'), '.*?\"(.*?)\".*', '\\\\1') as nodeImageBase64";
         $queryStr .= " FROM `storage_schematic_blocks`";
         $queryStr .= " LEFT JOIN nodes_to_category_assignment";
@@ -367,8 +368,8 @@ class ModelSchematicNodes{
         $queryStr .= "    nodes_to_category_assignment.category_id = project_categories.internal_id";
         $queryStr .= " WHERE";
         $queryStr .= "    storage_schematic_blocks.node_owner=$userOwner AND";
-        $queryStr .= "    storage_schematic_blocks.node_project=$projectId AND";
-        $queryStr .= "    storage_schematic_blocks.node_isHidden=false";
+        $queryStr .= "    storage_schematic_blocks.node_project=$projectId";
+        $queryStr .= $includeHidden==false ? "    AND storage_schematic_blocks.node_isHidden=false" : "";
         $queryStr .= " ORDER BY";
         $queryStr .= "	  project_categories.category_name,";
         $queryStr .= "    storage_schematic_blocks.node_display_name;";
@@ -385,7 +386,8 @@ class ModelSchematicNodes{
                 "id" => $row['nodeId'],
                 "className" => $row['nodeClassName'],
                 "displayName" => $row['nodeDisplayName'],
-                "image" => $row['nodeImageBase64']
+                "image" => $row['nodeImageBase64'],
+                "isHidden" => $row['node_isHidden']
             ));
         }
 

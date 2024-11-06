@@ -38,9 +38,9 @@
                     <td>Code template:</td>
                     <td>
                         <select name="codeTemplate">
-                            <option value="arduino" <?= $projectCodeTemplate == "esp" ? "selected" : "" ?>>Espressif ESP</option>
-                            <option value="arduino" <?= $projectCodeTemplate == "arduino" ? "selected" : "" ?>>arduino</option>
                             <option value="desktop" <?= $projectCodeTemplate == "desktop" ? "selected" : "" ?>>desktop</option>
+                            <option value="arduino" <?= $projectCodeTemplate == "esp" ? "selected" : "" ?> disabled>Espressif ESP</option>
+                            <option value="arduino" <?= $projectCodeTemplate == "arduino" ? "selected" : "" ?> disabled>arduino</option>
                         </select>
                     </td>
                 </tr>
@@ -49,8 +49,8 @@
                     <td>
                         <select name="language">
                             <option value="C/C++" <?= $projectLanguage == "C/C++" ? "selected" : "" ?>>C/C++</option>
-                            <option value="python" <?= $projectLanguage == "python" ? "selected" : "" ?>>python</option>
-                            <option value="javascript" <?= $projectLanguage == "javascript" ? "selected" : "" ?>>javascript</option>
+                            <option value="python" <?= $projectLanguage == "python" ? "selected" : "" ?> disabled>python</option>
+                            <option value="javascript" <?= $projectLanguage == "javascript" ? "selected" : "" ?> disabled>javascript</option>
                         </select>
                     </td>
                 </tr>

@@ -4,6 +4,14 @@
         #categoryTable td{
             padding: 8px;
         }
+
+        .hiddenNode{
+            background-color: #bebebe;
+        }
+
+        .nodeDetailImage{
+            width: 100px;
+        }
     </style>
 
     <script type="text/javascript" src="javascript/utils.js"></script>
@@ -34,7 +42,13 @@
                         /*
                          *  THIS IS REALLY NEEDED TO PARSE JSON CORRECTLY WITHOUT THIS IT'S NOT RUNNING AT ALL!!!
                          */
-                        response = JSON.parse(this.responseText.replace('"','\"'));
+                        try {
+                            response = JSON.parse(this.responseText.replace('"', '\"'));
+                        }catch(e){
+                            console.log("ajax response is not valid JSON object");
+                            console.log(this.responseText);
+                            return;
+                        }
 
                         /*
                          *  Print to console response from server
@@ -66,7 +80,7 @@
                 let category_id = -1;
                 let project_id = -1;
 
-                if (['DELETE', 'MOVE', 'COPY', 'DELETE NODE'].indexOf(element.value) > -1) node_id = element.closest('td').querySelector('input[name="node_id"]').value;
+                if (['DELETE', 'MOVE', 'COPY', 'DELETE NODE', 'SET HIDDEN', 'SET VISIBLE'].indexOf(element.value) > -1) node_id = element.closest('td').querySelector('input[name="node_id"]').value;
                 if (['DELETE', 'MOVE', 'COPY', 'DELETE CATEGORY', 'RENAME CATEGORY'].indexOf(element.value) > -1) category_id = element.closest('td').querySelector('input[name="category_id"]').value;
                 project_id = document.querySelector('input[name="project_id"]').value;
 
@@ -321,6 +335,23 @@
                             }
                         }
                     );
+                } else if (element.value == "SET HIDDEN" || element.value == "SET VISIBLE"){
+                    nodeIsHidden = 0;
+                    if (element.value == "SET HIDDEN") nodeIsHidden = 1;
+                    if (element.value == "SET VISIBLE") nodeIsHidden = 0;
+
+                    serverAjaxPostSendReceive(
+                        ["q", "nodeOperation", "operation", "changeNodeIsHidden"],
+                        ["projectId", project_id, "nodeId", node_id, "nodeNewIsHidden", nodeIsHidden],
+                        function(){
+                            if (GLOBAL_AJAX_RESPONSE.status){
+                                if (nodeIsHidden == 1) element.closest("tr").classList.add("hiddenNode");
+                                if (nodeIsHidden == 0) element.closest("tr").classList.remove("hiddenNode");
+                            }else{
+                                alert(GLOBAL_AJAX_RESPONSE.errorMsg);
+                            }
+                        }
+                    );
                 }
             }
 
@@ -367,6 +398,11 @@
 <a href='?q=projectCategoriesNodesEditor&projectId=<?= $currentProjectId ?>&viewType=1'>View as grid</a>&nbsp;&nbsp;&nbsp;&nbsp;
 <a href="?q=ide&projectId=<?= $currentProjectId ?>">NEW SCHEMATIC</a>&nbsp;&nbsp;&nbsp;&nbsp;
 <a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>">NEW SYMBOL</a>&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="?q=projectCategoriesNodesEditor&projectId=<?= $currentProjectId ?><?= $includeHiddenNodes ? '' : '&includeHiddenNodes=1'?>">
+    <?= $includeHiddenNodes ? 'Show only visible nodes' : 'Show hidden nodes'?>
+</a>&nbsp;&nbsp;&nbsp;&nbsp;
+
 <br /><br />
 
 <table id="newCategoryEditor">
@@ -404,14 +440,14 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
     <?php
     foreach($categoryNodes as $node){
         ?>
-        <tr>
+        <tr class="<?= $node['isHidden'] ? 'hiddenNode' : '' ?>">
             <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?= $node['displayName'] ?></td>
             <td><?= $node['className'] ?></td>
             <td><?= $node['id'] ?></td>
             <td style="text-align: center;">
             <?php
                 if ($node['image']){
-                    echo('<img width="120px" src="'.$node['image'].'" alt="no image" />');
+                    echo('<img class="nodeDetailImage" width="120px" src="'.$node['image'].'" alt="no image" />');
                 }else{
                     echo('<span>NO IMAGE</span>');
                 }
@@ -441,7 +477,9 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
             <td><a href="?q=ide&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit schematic</a></td>
             <td><a href="?q=codeEditor&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit code</a></td>
             <td>
-                <input type="button" value="DELETE NODE"/>
+                <input type="button" value="DELETE NODE"/><br />
+                <input type="button" value="SET HIDDEN"/><br />
+                <input type="button" value="SET VISIBLE"/>
                 <input name="node_id" type="hidden" value="<?= $node['id'] ?>"/>
             </td>
         </tr>

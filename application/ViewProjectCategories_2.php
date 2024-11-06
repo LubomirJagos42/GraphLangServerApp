@@ -1,6 +1,15 @@
 <html>
     <head>
         <style type="text/css">
+            .hiddenNode{
+                background-color: #eaeaea;
+            }
+
+            .nodeBlock{
+                float: left;
+                margin: 5px;
+                border: 1px solid black;
+            }
         </style>
 
         <script type="text/javascript" src="javascript/utils.js"></script>
@@ -64,7 +73,7 @@
                     let category_id = -1;
                     let project_id = -1;
 
-                    if (['DELETE', 'MOVE', 'COPY', 'DELETE NODE'].indexOf(element.value) > -1) node_id = element.closest('div').querySelector('input[name="node_id"]').value;
+                    if (['DELETE', 'MOVE', 'COPY', 'DELETE NODE', 'SET HIDDEN', 'SET VISIBLE'].indexOf(element.value) > -1) node_id = element.closest('div').querySelector('input[name="node_id"]').value;
                     if (['DELETE', 'MOVE', 'COPY', 'DELETE CATEGORY', 'RENAME CATEGORY'].indexOf(element.value) > -1) category_id = element.closest('div').querySelector('input[name="category_id"]').value;
                     project_id = document.querySelector('input[name="project_id"]').value;
 
@@ -311,7 +320,24 @@
                             ["projectId", project_id, "nodeId", node_id],
                             function(){
                                 if (GLOBAL_AJAX_RESPONSE.status){
-                                    element.closest("div[class='nodeBlock']").remove();
+                                    element.closest("div.nodeBlock").remove();
+                                }else{
+                                    alert(GLOBAL_AJAX_RESPONSE.errorMsg);
+                                }
+                            }
+                        );
+                    } else if (element.value == "SET HIDDEN" || element.value == "SET VISIBLE"){
+                        nodeIsHidden = 0;
+                        if (element.value == "SET HIDDEN") nodeIsHidden = 1;
+                        if (element.value == "SET VISIBLE") nodeIsHidden = 0;
+
+                        serverAjaxPostSendReceive(
+                            ["q", "nodeOperation", "operation", "changeNodeIsHidden"],
+                            ["projectId", project_id, "nodeId", node_id, "nodeNewIsHidden", nodeIsHidden],
+                            function(){
+                                if (GLOBAL_AJAX_RESPONSE.status){
+                                    if (nodeIsHidden == 1) element.closest("div.nodeBlock").classList.add("hiddenNode");
+                                    if (nodeIsHidden == 0) element.closest("div.nodeBlock").classList.remove("hiddenNode");
                                 }else{
                                     alert(GLOBAL_AJAX_RESPONSE.errorMsg);
                                 }
@@ -362,6 +388,11 @@
 <a href='?q=projectCategoriesNodesEditor&projectId=<?= $currentProjectId ?>'>View as table</a>&nbsp;&nbsp;&nbsp;&nbsp;
 <a href="?q=ide&projectId=<?= $currentProjectId ?>">NEW SCHEMATIC</a>&nbsp;&nbsp;&nbsp;&nbsp;
 <a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>">NEW SYMBOL</a>&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="?q=projectCategoriesNodesEditor&projectId=<?= $currentProjectId ?>&viewType=1<?= $includeHiddenNodes ? '' : '&includeHiddenNodes=1'?>">
+    <?= $includeHiddenNodes ? 'Show only visible nodes' : 'Show hidden nodes'?>
+</a>&nbsp;&nbsp;&nbsp;&nbsp;
+
 <br />
 <br />
 
@@ -394,8 +425,8 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
     <?php
     foreach($categoryNodes as $node){
         ?>
-        <div class="nodeBlock" style="background: none; float: left; margin: 5px; border: 1px solid black;">
-            <div style="background: none; width: 100%; text-align: center;">
+        <div class="nodeBlock <?= $node['isHidden'] ? 'hiddenNode' : ''?>">
+            <div style="width: 100%; text-align: center;">
                 <?php
                 if ($node['image']){
                     echo('<img width="120px" src="'.$node['image'].'" alt="no image" />');
@@ -404,11 +435,13 @@ foreach($nodesNamesWithCategories as $categoryName => $categoryNodes){
                 }
                 ?>
             </div>
-            <div style="background: none; width: 100%; text-align: center;"><?= $node["displayName"] ?></div>
-            <div style="background: none; width: 100%; text-align: center;"><?= $node["className"] ?></div>
+            <div style="width: 100%; text-align: center;"><?= $node["displayName"] ?></div>
+            <div style="width: 100%; text-align: center;"><?= $node["className"] ?></div>
             <br />
             <div>
                 <input name="deleteNodeButton" type="button" value="DELETE NODE"/><br />
+                <input name="setHiddenNodeButton" type="button" value="SET HIDDEN"/><br />
+                <input name="setVisibleNodeButton" type="button" value="SET VISIBLE"/><br />
                 <a href="?q=shapeDesigner&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className']?>">edit symbol</a>
                 <br />
                 <a href="?q=ide&projectId=<?= $currentProjectId ?>&nodeId=<?= $node['id'] ?>&nodeClassName=<?= $node['className'] ?>">edit schematic</a>

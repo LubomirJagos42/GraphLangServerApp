@@ -9,7 +9,9 @@ class ModelOsCommands{
 
     function __construct($db_conn){
         $this->db_conn = $db_conn;
+
         $this->OperatingSystem = php_uname('s');
+        if ($this->OperatingSystem == "") $this->OperatingSystem = PHP_OS;
     }
 
     function windowsRunCommand($runPath, $startDir){
@@ -18,8 +20,8 @@ class ModelOsCommands{
 
         //Get Operating System
 
-        if($this->OperatingSystem == "Windows NT") {
-            //**Works only for PHP 4 and above. proc_get_status() does not return correct PID so
+        if(in_array($this->OperatingSystem, ["Windows NT", "WINNT"])) {
+            //Works only for PHP 4 and above. proc_get_status() does not return correct PID so
             //work around is used as shown below..
             $descriptorspec = array (
                 0 => array("pipe", "r"),
@@ -47,7 +49,7 @@ class ModelOsCommands{
         }
         else if($this->OperatingSystem == "Linux") {
 
-            //**Works only for PHP 4 and above. proc_get_status() does not return correct PID so
+            //Works only for PHP 4 and above. proc_get_status() does not return correct PID so
             //work around is used as shown below..
             $descriptorspec = array (
                 0 => array("pipe", "r"),
