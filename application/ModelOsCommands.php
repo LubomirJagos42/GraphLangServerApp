@@ -14,7 +14,7 @@ class ModelOsCommands{
         if ($this->OperatingSystem == "") $this->OperatingSystem = PHP_OS;
     }
 
-    function windowsRunCommand($runPath, $startDir){
+    function runCommand($runPath, $startDir){
         $result = array("status" => 0, "errorMsg" => "", "message" => "");
         $pid = -1;
 

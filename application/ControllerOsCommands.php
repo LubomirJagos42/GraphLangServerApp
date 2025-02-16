@@ -27,7 +27,7 @@ class ControllerOsCommands extends ControllerParent{
         $startDir = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion).DIRECTORY_SEPARATOR."python_tools";
         $startDir = str_replace('\\', '/', $startDir);  #even Windows is OK with this when / is used instead of \
 
-        $processResult = $this->modelOsCommands->windowsRunCommand(
+        $processResult = $this->modelOsCommands->runCommand(
             'python3 DebuggerCppBrowserInterface.py',
             $startDir
         );
