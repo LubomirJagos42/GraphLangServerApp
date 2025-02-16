@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 28, 2024 at 03:54 PM
+-- Generation Time: Feb 15, 2025 at 02:20 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.24
 
@@ -41,11 +41,11 @@ CREATE TABLE `active_users` (
 --
 
 INSERT INTO `active_users` (`internal_id`, `name`, `email`, `password`, `last_logged`, `token`) VALUES
-(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2024-10-28 15:53:35', 'e6da110d09208a5c8cb3b9d94562c166'),
-(2, 'GraphLang_Core', 'graphlang@core.com', '6a284155906c26cbca20c53376bc63ac', '2024-07-07 08:54:02', 'a0a13e794e50ede8cad6349dccd6d73b'),
+(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2024-12-25 22:52:08', '4429cddb686f401fc948f16c4da859ce'),
+(2, 'GraphLang_Core', 'graphlang@core.com', '6a284155906c26cbca20c53376bc63ac', '2024-12-25 21:38:14', '90184bbf57579f2202d68b86a9d5b3b5'),
 (4, 'John Doe', 'john.doe.nonexisting.guy@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
 (5, 'Lucy Skyler', 'lucy.skyler.nonexsiting@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
-(6, 'system_blocks', 'system@core.com', '6a284155906c26cbca20c53376bc63ac', NULL, ''),
+(6, 'system_blocks', 'system@core.com', '6a284155906c26cbca20c53376bc63ac', '2024-12-25 21:56:39', '5130ce43428e9f767e3e9daba7d8d9d2'),
 (7, 'User A', 'a@a.com', '6a284155906c26cbca20c53376bc63ac', '2024-07-07 18:45:36', '23905fab347a8a729ab0114f8d0229d4'),
 (8, 'thomas', 'thomas@thomas.eu', 'ef6e65efc188e7dffd7335b646a85a21', '2024-10-17 17:08:08', '9a48fffb55ad09b85cb1b78de81d7456'),
 (9, 'ggg', 'ggg@ggg.eu', 'ba248c985ace94863880921d8900c53f', '2024-10-17 17:09:15', 'db7cd5e72632f046e923f62246bd0c6b');

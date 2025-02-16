@@ -289,7 +289,7 @@ class ModelSchematicNodes{
      * @param $projectId
      * @return void
      * @description This will return string javascript object for library block initialization. Since every schematic blocs is part of something
-     * similar to GraphLang.LibraryBlocks.SomeCategory... therefore these objects must be first initializied like raphLang = {},
+     * similar to GraphLang.LibraryBlocks.SomeCategory... therefore these objects must be first initializied like GraphLang = {},
      * then GraphLang.LibraryBlocks = {} and so to overcome javascript error that these variables are not defined.
      */
     function getJavascriptObjectsInitDefinitionForProject($userOwner, $projectId){
@@ -639,17 +639,33 @@ class ModelSchematicNodes{
         return $projectsList;
     }
 
+    /**
+     * @description This will return JUST NODES WITH PARENT UserDefinedNodes, there could be more nodes which are user defined but are extension of some other
+     * node and this method will not reutrn them. Here must be comparison of node content and look for non empty 'jsonDocument: [...some text...]'
+     * !!!THIS METHOD MUST BE REWORKED!!!
+     * @param $userOwner {integer} user ID
+     * @param $projectId {integer} project ID
+     * @return array of nodes which has direct parent UserDefinedNode
+     */
     function getUserDefinedNodesClassNames($userOwner, $projectId){
         $userOwner = (int) $userOwner;
         $projectId = (int) $projectId;
+        $userDefinedNodes = array();    //output array
 
-        $queryStr = "SELECT node_class_name FROM storage_schematic_blocks WHERE node_class_parent LIKE '%UserDefinedNode%' AND node_owner=$userOwner AND node_project=$projectId;";
+        // 1. Look for nodes which SHOULD BE USER DEFINED PARENTS, these have to be added artificaially into list due their parent is probably some structure from draw2d
+        $queryStr = "SELECT node_class_name FROM storage_schematic_blocks WHERE node_class_name LIKE '%UserDefinedNode' AND node_owner=$userOwner AND node_project=$projectId;";
         $result = $this->db_conn->query($queryStr);
-
-        $userDefinedNodes = array();
         foreach ($result as $row) {
             array_push($userDefinedNodes, $row["node_class_name"]);
         }
+
+        // 2. Look for nodes which parent hase user defined identificator in parent
+        $queryStr = "SELECT node_class_name FROM storage_schematic_blocks WHERE node_class_parent LIKE '%UserDefinedNode%' AND node_owner=$userOwner AND node_project=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        foreach ($result as $row) {
+            array_push($userDefinedNodes, $row["node_class_name"]);
+        }
+
         return $userDefinedNodes;
     }
 

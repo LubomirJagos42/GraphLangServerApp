@@ -340,6 +340,7 @@ class ControllerDefault extends ControllerParent{
                 $this->modelLogin->getCurrentUserId(),
                 $this->modelLogin->getCurrentUserProjectId()
             );
+            //echo(addslashes($orderedNodesArray));   //this will broke loading JS code, add slashes in front of ',",\ to not be interpreted by echo as special chars
             echo($orderedNodesArray);
         }else{
             $projectId = $this->modelLogin->getCurrentUserProjectId();
