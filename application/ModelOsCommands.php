@@ -26,15 +26,23 @@ class ModelOsCommands{
             $descriptorspec = array (
                 0 => array("pipe", "r"),
                 1 => array("pipe", "w"),
+                2 => array("pipe", "w")
             );
 
             //proc_open — Execute a command
             //'start /b' runs command in the background
-            if ( is_resource( $prog = proc_open("start /b " . $runPath, $descriptorspec, $pipes, $startDir, NULL) ) )
+            $prog = proc_open("start /b " . $runPath, $descriptorspec, $pipes, $startDir, NULL);
+            if (is_resource($prog))
             {
                 //Get Parent process Id
                 $ppid = proc_get_status($prog);
                 $pid=$ppid['pid'];
+
+                //experimental, this should close pipes to process to not blocked that
+//                fclose($pipes[0]);  // Close input pipe
+//                fclose($pipes[1]);  // Close output pipe
+//                fclose($pipes[2]);  // Close error pipe
+//                proc_close($process);
             }
             else
             {

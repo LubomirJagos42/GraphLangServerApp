@@ -172,40 +172,55 @@ class ModelSchematicNodes{
 
 		$outputStr .= "Query result: $result\n";
 		$outputStr .= "\tAffected rows: $affected_rows\n";
+		$outputStr .= "\n";
 
-        #
+        #################################################################################################################################################
         #   Save CATEGORY for node
-        #
+        #       1. Try to find category by name in project
+        #       2. Add node into category
+        #################################################################################################################################################
         $categoryId = -1;
-        if ($nodeInternalId > -1 && $nodeCategoryName != "" && !($nodeIsHidden == "" || $nodeIsHidden == false || $nodeIsHidden == 0)){
+
+        # step 1 - found category name
+        if ($nodeInternalId > -1 && $nodeCategoryName != ""){
             $queryStr = "SELECT * FROM project_categories WHERE project_id=$projectId AND category_name='$nodeCategoryName';";
             $result = $this->db_conn->query($queryStr);
 
             if ($result->num_rows > 0){
                 $row = $result->fetch_row();
                 $categoryId = $row[0];
+
+                $outputStr .= "Category found by name, id [$categoryId], name: [$nodeCategoryName]\n";
             }else{
                 $queryStr = "INSERT INTO project_categories (category_name, project_id) VALUES ('$nodeCategoryName', $projectId);";
                 $result = $this->db_conn->query($queryStr);
-                if ($result === TRUE){
+                if ($result === true){
                     $categoryId = $this->db_conn->insert_id;
+                    $outputStr .= "\tCategory created by name, id [$categoryId], name: [$nodeCategoryName]\n";
+                }else{
+                    $outputStr .= "\tError during category create, name: [$nodeCategoryName]\n";
                 }
             }
         }
+
+        # step 2 - add node to category
         if ($nodeInternalId > -1 && $categoryId > -1){
             $queryStr = "INSERT INTO nodes_to_category_assignment (category_id, node_id, project_id) VALUES ($categoryId, $nodeInternalId, $projectId);";
             try{
                 $result = $this->db_conn->query($queryStr);
             }catch (Exception $e){}
 
-            if ($result === TRUE){
+            if ($result === true){
                 $outputStr .= "Node $nodeDisplayName ($nodeInternalId, $nodeClassName) added to category '$nodeCategoryName' ($categoryId)\n";
             }else{
                 $outputStr .= "ERROR: CATEGORY: ". $this->db_conn->error ."\n";
             }
-        }else{
-            $outputStr .= "No category defined for node.\n";
         }
+
+        # step 3 - error case, add error into output directory
+        if ($nodeInternalId == -1 || $categoryId == -1) $outputStr .= "No category defined for node.\n";
+        if ($nodeInternalId == -1) $outputStr .= "nodeInternalId is [$nodeInternalId], node not found\n";
+        if ($categoryId == -1) $outputStr .= "categoryId is [$categoryId], category not found by name\n";
 
         $outputArray["message"] = $outputStr;
 		return $outputArray;
