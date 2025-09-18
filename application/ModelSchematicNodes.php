@@ -289,10 +289,19 @@ class ModelSchematicNodes{
 		$outputStr = "";
         foreach ($orderedNodesList as $node){
 			$queryStr = "SELECT node_content_code FROM storage_schematic_blocks WHERE internal_id=". $node['internal_id'] ." AND node_owner=$userOwner AND node_project=$projectId;";
-			$result = $this->db_conn->query($queryStr);
+			$outputStr .= "//Result of SQL query:\n";
+			$outputStr .= "//".$queryStr."\n";
+			$outputStr .= "\n";
+            $result = $this->db_conn->query($queryStr);
 			foreach ($result as $row) {
+//                $outputStr .= "console.log('Loading node ".$row['internal_id']."');\n\n";
+                $outputStr .= "try{\n";
                 $outputStr .= $row['node_content_code'];
-				$outputStr .= "\n";
+                $outputStr .= "\n}catch(e){\n";
+//                $outputStr .= "\tconsole.error('ERROR loading node id: " .  $row['internal_id'] . "');\n";
+                $outputStr .= "\tconsole.error(e);\n";
+                $outputStr .= "}\n";
+				$outputStr .= "\n\n\n\n\n\n";
 			}
 		}
         $outputStr .= "\n";
