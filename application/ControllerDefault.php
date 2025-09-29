@@ -4,6 +4,7 @@ include_once("ModelLogin.php");
 include_once("ModelSchematicNodes.php");
 include_once("ModelDirectory.php");
 include_once("ModelProject.php");
+include_once("ModelOsCommands.php");
 
 #Controller Default Class
 class ControllerDefault extends ControllerParent{
@@ -13,9 +14,10 @@ class ControllerDefault extends ControllerParent{
 
     function __construct($db_conn){
         $this->modelLogin = new ModelLogin($db_conn);
-		$this->modelSchematicNodes = new modelSchematicNodes($db_conn);
-		$this->modelDirectory = new modelDirectory($db_conn);
-		$this->modelProject = new modelProject($db_conn);
+		$this->modelSchematicNodes = new ModelSchematicNodes($db_conn);
+		$this->modelDirectory = new ModelDirectory($db_conn);
+		$this->modelProject = new ModelProject($db_conn);
+		$this->modelOsCommands = new ModelOsCommands($db_conn);
     }
 
     private function getCurrentUserLoginVariables(){
@@ -976,7 +978,7 @@ class ControllerDefault extends ControllerParent{
      *          - it's done and tested, there could be errors but seems to be working when called from Chrome using console and sending ajax requests
      *          - I am exhausted from work and it's 3am so I am OK with how it's running now
      */
-    function doCompileProject(){
+    function doCompileProject($printResultUsingEcho = true){
         $result = array("status" => 0, "errorMsg" => "", "message" => "");
 
         $loginInfo = $this->getLoginInfo();
@@ -1009,42 +1011,51 @@ class ControllerDefault extends ControllerParent{
             $outputFileName = $this->getVariableFromPost("outputFileName", "main");
             $codeStr = hex2bin($nodeCodeContent);
 
-            $fileToCompile = $compileOutputDir.DIRECTORY_SEPARATOR."main.cpp";      #name hardcoded since node code is generated into one file
-            $outFile = fopen($fileToCompile, "w+");
-            fwrite($outFile, $codeStr);
-            fclose($outFile);
+            if (strlen($codeStr) > 0){
+                $fileToCompile = $compileOutputDir.DIRECTORY_SEPARATOR."main.cpp";      #name hardcoded since node code is generated into one file
+                $outFile = fopen($fileToCompile, "w+");
+                fwrite($outFile, $codeStr);
+                fclose($outFile);
 
-            #
-            #   Run compilation python script from IDE directory
-            #       - using absolute paths to be sure
-            #       - used dirname(__FILE__, 2) since we are at directory of this php script so tested need goint to parent dir and then one more up, that is 2nd param 2
-            #
-            #   TODO GraphLang IDE version is hardwired need to be replaced by obtaining from DB
-            #
-            $fileToCompileAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$fileToCompile;
-            $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR.$outputFileName;
+                #
+                #   Run compilation python script from IDE directory
+                #       - using absolute paths to be sure
+                #       - used dirname(__FILE__, 2) since we are at directory of this php script so tested need goint to parent dir and then one more up, that is 2nd param 2
+                #
+                #   TODO GraphLang IDE version is hardwired need to be replaced by obtaining from DB
+                #
+                $fileToCompileAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$fileToCompile;
+                $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR.$outputFileName;
 
-            $compileCommand = "";
-            $compileCommand .= "python";
-            $compileCommand .= ' "'.dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion).DIRECTORY_SEPARATOR."python_tools".DIRECTORY_SEPARATOR.'compileCppCode.py"';
-            $compileCommand .= ' "'.$fileToCompileAbsolutePath.'"';
-            $compileCommand .= ' "'.$compileFileOutputAbsolutePath.'"';
-            $compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
+                $compileCommand = "";
+                $compileCommand .= "python";
+                $compileCommand .= ' "'.dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion).DIRECTORY_SEPARATOR."python_tools".DIRECTORY_SEPARATOR.'compileCppCode.py"';
+                $compileCommand .= ' "'.$fileToCompileAbsolutePath.'"';
+                $compileCommand .= ' "'.$compileFileOutputAbsolutePath.'"';
+                $compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
 
-            $result["outputFileAbsolutePath"] = $compileFileOutputAbsolutePath;
-            $result["compileCommand"] = $compileCommand;
-            $result["compileCommandOutput"] = shell_exec($compileCommand);
+                $result["outputFileAbsolutePath"] = $compileFileOutputAbsolutePath;
+                $result["compileCommand"] = $compileCommand;
+                $result["compileCommandOutput"] = shell_exec($compileCommand);
 
-            #
-            #   WRITE COMPILATION RESULT
-            #
-            $result["status"] = 1;
-            $result["message"] .= "Project compilation finished, check compilation output.\n";
+                #
+                #   WRITE COMPILATION RESULT
+                #
+                $result["status"] = 1;
+                $result["message"] .= "Project compilation finished, check compilation output.\n";
+            }else{
+                $result["status"] = 0;
+                $result["message"] .= "No source code, code sent through POST is empty!\n";
+            }
         }else{
             $result["errorMsg"] .= "User not logged!\n";
         }
 
-        echo(json_encode($result));
+        if ($printResultUsingEcho == true){
+            echo(json_encode($result));
+        }
+
+        return $result;
     }
 
     /*
@@ -1278,6 +1289,81 @@ class ControllerDefault extends ControllerParent{
             }
 
         }
+    }
+
+    function doCheckIfProcessIsRunning(){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1) {
+            $pidToBeChecked = $this->getVariableFromGet("pid", -1);
+            #
+            #   WRITE COMPILATION RESULT
+            #
+            $checkProcessResult = $this->modelOsCommands->checkIfProcessIsRunning($pidToBeChecked);
+            $result["status"] =  $checkProcessResult["isRunning"];
+            $result["message"] .= $checkProcessResult["commandOutput"];
+        }else{
+            $result["errorMsg"] .= "User not logged!\n";
+        }
+
+        echo(json_encode($result));
+    }
+
+    /*
+     *  Execute compiled program and write PID of its process into file in same folder.
+     *  These steps will be performed:
+     *      1. generate C++ code
+     *      2. compile code
+     *      3. if program is already running kill it (there is file in dir with last executed PID, so it check if process exists)
+     *      4. execute program
+     *      5. write pid of current process to file like .current_pid
+     *
+     *  TODO: There is needed to add compilation parameters for g++ like when include ie. ZeroMQ library to use -I<path to folder with .h files> -L<somepath to folder with lib> -lzmq
+     *        otherwise project will not compile
+     */
+    function doRunProject(){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        //first compile project, it requires that code must be sent over POST to be compiled
+        $projectCompilationResult = $this->doCompileProject(false);
+
+        if ($projectCompilationResult["status"] == 1){
+            /*
+             *  compilation was OK, run program and
+             */
+            $isProcessRunning = false;
+            $compilationDirectory = dirname($projectCompilationResult["outputFileAbsolutePath"]);
+            $currentProgramPidFile = $compilationDirectory.DIRECTORY_SEPARATOR.".current_running_pid";
+
+            //first check if current program is running already, if yes kill it?
+            if (file_exists($currentProgramPidFile)){
+                $currentProgramProcessPid = file_get_contents($currentProgramPidFile);
+                $currentProcessStatus = $this->modelOsCommands->checkIfProcessIsRunning($currentProgramProcessPid);
+                if (
+                    $currentProcessStatus["isRunning"] == true
+                    && str_contains($currentProcessStatus["commandOutput"], "main")             //suppose that program is named main.cpp therefore process will be main.exe
+                ){
+                    $this->modelOsCommands->killProcess($currentProgramProcessPid);                    //kill program if already running
+                }
+            }
+
+            $runCompiledProgramResult = $this->modelOsCommands->runCommand($projectCompilationResult["outputFileAbsolutePath"], $compilationDirectory);
+            if ($isProcessRunning == false && array_key_exists("pid", $runCompiledProgramResult)){
+                file_put_contents($currentProgramPidFile, $runCompiledProgramResult["pid"]);
+                $result["status"] = 1;
+                $result["message"] = "Program was executed with pid ".$runCompiledProgramResult["pid"];
+            }else{
+                //PROGRAM NOT RUNNING
+                $result["errorMsg"] = "There was problem to execute compiled program.";
+            }
+        }else{
+            //COMPILATION FAILED
+            $result["errorMsg"] = "There was problem to compile program.";
+            $result["message"] = $projectCompilationResult["message"];
+        }
+
+        echo(json_encode($result));
     }
 
 }

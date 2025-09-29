@@ -98,8 +98,27 @@ class ModelOsCommands{
              *  THIS NOT RUNNING NEED TO BE REPAIRED
              */
             //proc_terminate($resource);
-            exec('taskkill /F /PID $pid');
+            exec('taskkill /F /PID '.$pid);
         }
+    }
+
+    function checkIfProcessIsRunning($pid = -1){
+        $result = array("isRunning" => false, "commandOutput" => "");
+
+        if ($this->OperatingSystem == "Linux"){
+
+            //TODO: Need to be checked if working on linux
+
+            $pidCheckResult = exec('ps -p '.$pid);
+            $result["commandOutput"] = $pidCheckResult;
+        }
+        if ($this->OperatingSystem == "Windows NT"){
+            $pidCheckResult = exec('tasklist /FI "PID eq '.$pid.'"');
+            $result["isRunning"] = !str_contains($pidCheckResult, "No tasks are running");
+            $result["commandOutput"] = $pidCheckResult;
+        }
+
+        return $result;
     }
 
 }

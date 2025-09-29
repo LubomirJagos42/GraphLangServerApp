@@ -88,6 +88,12 @@ include_once("application/ControllerOsCommands.php");
 	}else if ($q == "registerUserViaEmail"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doRegisterUserViaEmail();
+	}else if ($q == "runProject"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doRunProject();
+	}else if ($q == "checkIfProcessIsRunning"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doCheckIfProcessIsRunning();
 	}else{
 		$controller->doNotFound();
 	}
