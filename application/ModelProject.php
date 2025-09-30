@@ -250,5 +250,13 @@ class ModelProject
         echo("<br /><br />\n");
     }
 
+    function getProjectLibrary($userId, $projectId, $libraryName = ""){
+        $queryStr = "SELECT media_content, media_format, media_compile_parameters FROM storage_media WHERE media_name='$libraryName' AND (project_id=$projectId OR project_id IS NULL) AND media_owner=$userId;";
+        $result = $this->db_conn->query($queryStr);
+
+        $outputArray = $result->fetch_assoc();  //now fetch just first row
+        return $outputArray;
+    }
+
 }
 ?>

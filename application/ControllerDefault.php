@@ -1008,14 +1008,57 @@ class ControllerDefault extends ControllerParent{
             #   Copy code into output file and run python compilation script
             #
             $nodeCodeContent = $this->getVariableFromPost("nodeCodeContent", "");
-            $outputFileName = $this->getVariableFromPost("outputFileName", "main");
             $codeStr = hex2bin($nodeCodeContent);
+            $outputFileName = $this->getVariableFromPost("outputFileName", "main");
+            $librariesList = $this->getVariableFromPost("nodeCodeAdditionalLibraries", "");
+            $librariesList = explode(',', $librariesList);
 
             if (strlen($codeStr) > 0){
                 $fileToCompile = $compileOutputDir.DIRECTORY_SEPARATOR."main.cpp";      #name hardcoded since node code is generated into one file
                 $outFile = fopen($fileToCompile, "w+");
                 fwrite($outFile, $codeStr);
                 fclose($outFile);
+
+                #
+                #   WRITE ADDITIONAL LIBRARIES FROM DB TO DRIVE to folder libraries
+                #
+                $projectLibDir = $compileOutputDir.DIRECTORY_SEPARATOR."libraries";
+                @mkdir($projectLibDir);
+                foreach ($librariesList as $libraryName){
+                    $mediaObj = $this->modelProject->getProjectLibrary($currentUser, $currentProject, $libraryName);
+                    if ($mediaObj == null) break;
+
+                    $libDir = $projectLibDir.DIRECTORY_SEPARATOR.$libraryName;
+                    @mkdir($libDir);
+                    $media_output_file = $libDir.DIRECTORY_SEPARATOR."_".$libraryName.".".$mediaObj["media_format"];
+                    file_put_contents($media_output_file, $mediaObj["media_content"]);
+                    if ($mediaObj["media_format"] == "zip"){
+                        $zip = new ZipArchive();
+                        $zip->open($media_output_file);
+                        $zip->extractTo($libDir);
+                        $zip->close();
+                    }
+                }
+
+                #
+                #   TODO: This is experimental, write compile command into .sh file which could be run through msys
+                #
+                $compileFileContent = "g++ main.cpp -o main.exe \\\n";
+                $wasExternalLibUsed = false;
+                foreach ($librariesList as $libraryName){
+                    $mediaObj = $this->modelProject->getProjectLibrary($currentUser, $currentProject, $libraryName);
+                    if ($mediaObj == null) break;
+
+                    if ($mediaObj["media_compile_parameters"] == "" || $mediaObj["media_compile_parameters"] == null){
+                        $compileFileContent .= "    -Ilibraries/$libraryName/include \\\n";
+                        $compileFileContent .= "    -Llibraries/$libraryName \\\n";
+                        $compileFileContent .= "    -l$libraryName \\\n";                    //here is used library name as -l for C++ compiler what means that library must have same name as is named in C++ when installed on system
+                        $wasExternalLibUsed = true;
+                    }
+                }
+                $compileFileContent .= "2>&1    #redirect error output to stdout\n";
+                $bashCompilationScriptFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."compile.sh";
+                file_put_contents($bashCompilationScriptFilepath, $compileFileContent);
 
                 #
                 #   Run compilation python script from IDE directory
@@ -1027,16 +1070,39 @@ class ControllerDefault extends ControllerParent{
                 $fileToCompileAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$fileToCompile;
                 $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR.$outputFileName;
 
-                $compileCommand = "";
-                $compileCommand .= "python";
-                $compileCommand .= ' "'.dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion).DIRECTORY_SEPARATOR."python_tools".DIRECTORY_SEPARATOR.'compileCppCode.py"';
-                $compileCommand .= ' "'.$fileToCompileAbsolutePath.'"';
-                $compileCommand .= ' "'.$compileFileOutputAbsolutePath.'"';
-                $compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
 
+                    // //WAY 1 - THIS IS RUNNING, not using external libs
+                    // //USING PYTHON SCRIPT TO COMPILE CODE USING g++ - RUNNING - not using external C++ libraries
+                    //$compileCommand = "";
+                    //$compileCommand .= "python";
+                    //$compileCommand .= ' "'.dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion).DIRECTORY_SEPARATOR."python_tools".DIRECTORY_SEPARATOR.'compileCppCode.py"';
+                    //$compileCommand .= ' "'.$fileToCompileAbsolutePath.'"';
+                    //$compileCommand .= ' "'.$compileFileOutputAbsolutePath.'"';
+                    //$compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
+                    // //USING BASH SCRIPT
+                    //$compileCommand = 'bash -lc "$(cygpath -u \'%cd%\')/'.$bashCompilationScriptFilepath.'"';
+                    //$compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
+
+                    // WAY 2 - bash script to compile using external libs in msys
+                    $compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
+                    $compileCommand = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile.sh 2>&1; echo $?"'; //TODO: output of my shell must be JSON as from python script
+
+                #
+                #   RUN COMPILATION AND FILL RESULT ARRAY
+                #
                 $result["outputFileAbsolutePath"] = $compileFileOutputAbsolutePath;
                 $result["compileCommand"] = $compileCommand;
-                $result["compileCommandOutput"] = shell_exec($compileCommand);
+
+                    // WAY 1 - python script to compile
+                    //$result["compileCommandOutput"] = shell_exec($compileCommand);  //<------------- COMPILATION TRIGGERED, for python script
+
+                    // WAY 2 - using bash script in msys
+                    //this output must be JSON: {"status": string, "message": string, "errorMessage": string}
+                    $result["compileCommandOutput"] = json_encode(array(
+                        "status" => 0,
+                        "message" => shell_exec($compileCommand),
+                        "errorMsg" => ""
+                    ));
 
                 #
                 #   WRITE COMPILATION RESULT
@@ -1363,7 +1429,7 @@ class ControllerDefault extends ControllerParent{
              */
             $cmdStr = "";
             if (php_uname('s') == "Windows NT"){
-                $cmdStr = "bash -lc \"cd \\\"$(cygpath -u '%cd%')\\\" && ./main.exe & sleep 0.001; ps -W | grep main | awk '{print $4}' > \\\"$(cygpath -u '%cd%')\\\"/.current_running_pid\"";
+                $cmdStr = "bash -lc \"cd \\\"$(cygpath -u '%cd%')\\\" && ./main.exe & sleep 0.7; ps -W | grep main | awk '{print $4}' > \\\"$(cygpath -u '%cd%')\\\"/.current_running_pid\"";
             }
             if (php_uname('s') == "Linux"){
                 $cmdStr = "./main.exe & echo $! > /.current_running_pid";      //TODO: Need to be tested on RaspberryPi if it's working, now just checkind in msys on windows
