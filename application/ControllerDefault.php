@@ -1332,9 +1332,9 @@ class ControllerDefault extends ControllerParent{
             /*
              *  compilation was OK, run program and
              */
-            $isProcessRunning = false;
             $compilationDirectory = dirname($projectCompilationResult["outputFileAbsolutePath"]);
             $currentProgramPidFile = $compilationDirectory.DIRECTORY_SEPARATOR.".current_running_pid";
+            $currentProgramPid = -1;
 
             //first check if current program is running already, if yes kill it?
             if (file_exists($currentProgramPidFile)){
@@ -1345,17 +1345,48 @@ class ControllerDefault extends ControllerParent{
                     && str_contains($currentProcessStatus["commandOutput"], "main")             //suppose that program is named main.cpp therefore process will be main.exe
                 ){
                     $this->modelOsCommands->killProcess($currentProgramProcessPid);                    //kill program if already running
+                    unlink($currentProgramPidFile);                                                    //remove file with pid
                 }
             }
 
-            $runCompiledProgramResult = $this->modelOsCommands->runCommand($projectCompilationResult["outputFileAbsolutePath"], $compilationDirectory);
-            if ($isProcessRunning == false && array_key_exists("pid", $runCompiledProgramResult)){
-                file_put_contents($currentProgramPidFile, $runCompiledProgramResult["pid"]);
+            //this will run compiled program in Windwos environment
+            //$runCompiledProgramResult = $this->modelOsCommands->runCommand($projectCompilationResult["outputFileAbsolutePath"], $compilationDirectory);
+            //$currentProgramPid = $runCompiledProgramResult["pid"];
+
+            /*
+             *  This will run program in msys environment, there is used on some example zeromq and it's simpler to use it from msys, msys2/usr/bin folder must be added to environment path variable!
+             *  MSYS2 is using its internal PID but when used ps -W there is column WINPID which is real windows native PID, extracted by using awk
+             *     1.) cd "$(cygpath -u '%cd%')" → moves bash into the Windows current directory.
+             *     2.) ./main.exe & → starts your program in the background.
+             *     3.) sleep 1 → gives it a moment to appear in ps. Changed to 1ms, THIS CAN CAUSE PROBLEMS BUT NOW SEEMS FINE.
+             *     4.) ps -W | grep main.exe | awk '{print $4}' > outputFileName → extracts the Windows PID.
+             */
+            $cmdStr = "";
+            if (php_uname('s') == "Windows NT"){
+                $cmdStr = "bash -lc \"cd \\\"$(cygpath -u '%cd%')\\\" && ./main.exe & sleep 0.001; ps -W | grep main | awk '{print $4}' > \\\"$(cygpath -u '%cd%')\\\"/.current_running_pid\"";
+            }
+            if (php_uname('s') == "Linux"){
+                $cmdStr = "./main.exe & echo $! > /.current_running_pid";      //TODO: Need to be tested on RaspberryPi if it's working, now just checkind in msys on windows
+            }
+
+            $runCompiledProgramResult = $this->modelOsCommands->runCommand($cmdStr, $compilationDirectory);
+            for($i = 0; $i < 10; $i++){
+                if(file_exists($currentProgramPidFile)){
+                    $currentProgramPid = file_get_contents($currentProgramPidFile);     //read pid from file to write it to answer
+                    break;
+                }
+                sleep(1); // if not found wait one second before continue looping, using this to be sure it's working properly to give it time
+                //usleep(300000);   //sleep in microseconds, this is extreme
+            }
+
+            if (intval($currentProgramPid) != -1){
+                file_put_contents($currentProgramPidFile, $currentProgramPid);
                 $result["status"] = 1;
-                $result["message"] = "Program was executed with pid ".$runCompiledProgramResult["pid"];
+                $result["message"] = "Program was executed with pid ".$currentProgramPid;
             }else{
                 //PROGRAM NOT RUNNING
-                $result["errorMsg"] = "There was problem to execute compiled program.";
+                $result["errorMsg"] = "There was problem to execute compiled program. PID: ".$currentProgramPid;
+                $result["message"] = "FILE: ".$currentProgramPidFile.", PID: ".$currentProgramPid;
             }
         }else{
             //COMPILATION FAILED
