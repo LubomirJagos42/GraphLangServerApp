@@ -1000,9 +1000,9 @@ class ControllerDefault extends ControllerParent{
             #
             #   Erase everything from project build directory
             #
-            $compileOutputDir = $projectOutputDir . DIRECTORY_SEPARATOR . "build";
+            $compileOutputDir = $projectOutputDir;
             @mkdir($compileOutputDir);
-            $result["compileOutputDir"] = $compileOutputDir;
+            $result["compileOutputDir"] = $compileOutputDir.DIRECTORY_SEPARATOR."build";
 
             #
             #   Copy code into output file and run python compilation script
@@ -1043,7 +1043,10 @@ class ControllerDefault extends ControllerParent{
                 #
                 #   TODO: This is experimental, write compile command into .sh file which could be run through msys
                 #
-                $compileFileContent = "g++ main.cpp -o main.exe \\\n";
+                //@mkdir($compileOutputDir.DIRECTORY_SEPARATOR."build");  //create build/ directory
+                $compileFileContent = "";
+                $compileFileContent .= "mkdir -p build #create build directory, do nothing if exists\n";
+                $compileFileContent .= "g++ main.cpp -o build/main.exe \\\n";
                 $wasExternalLibUsed = false;
                 foreach ($librariesList as $libraryName){
                     $mediaObj = $this->modelProject->getProjectLibrary($currentUser, $currentProject, $libraryName);
@@ -1061,6 +1064,41 @@ class ControllerDefault extends ControllerParent{
                 file_put_contents($bashCompilationScriptFilepath, $compileFileContent);
 
                 #
+                #   ALTERNATIVE CREATE CMakeLists.txt FOR USE cmake
+                #       - simple cmake file, assume there is main.cpp
+                #       - libraries folders are named as written in DB media_name field
+                #
+                $CMakeListsStr = "";
+                $CMakeListsStr .= "cmake_minimum_required(VERSION 3.15)\n";
+                $CMakeListsStr .= "project(MyZmqApp LANGUAGES CXX)\n";
+                $CMakeListsStr .= "\n";
+                $CMakeListsStr .= "# Require C++17 (adjust if you want C++20/23)\n";
+                $CMakeListsStr .= "set(CMAKE_CXX_STANDARD 17)\n";
+                $CMakeListsStr .= "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n";
+                $CMakeListsStr .= "\n";
+                $CMakeListsStr .= "# Add executable from your main.cpp\n";
+                $CMakeListsStr .= "add_executable(main main.cpp)\n";
+                $CMakeListsStr .= "\n";
+                $CMakeListsStr .= "# Tell CMake where to find headers\n";
+                foreach ($librariesList as $libraryName){$CMakeListsStr .= "target_include_directories(main PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName/include)\n";}
+                $CMakeListsStr .= "\n";
+                $CMakeListsStr .= "# Tell CMake where to find the libzmq binary\n";
+                foreach ($librariesList as $libraryName){$CMakeListsStr .= "target_link_directories(main PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName)\n";}
+                $CMakeListsStr .= "\n";
+                $CMakeListsStr .= "# Link against ZeroMQ\n";
+                foreach ($librariesList as $libraryName){$CMakeListsStr .= "target_link_libraries(main PRIVATE $libraryName)\n";}
+
+                $cmakeFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."CMakeLists.txt";
+                file_put_contents($cmakeFilepath, $CMakeListsStr);
+
+                $compileCMakeFileContent = "";
+                $compileCMakeFileContent .= "cmake -G \"Unix Makefiles\" -S . -B build\n";
+                $compileCMakeFileContent .= "cmake --build build\n";
+
+                $cmakeCompileScriptFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."compile_cmake.sh";
+                file_put_contents($cmakeCompileScriptFilepath, $compileCMakeFileContent);
+
+                #
                 #   Run compilation python script from IDE directory
                 #       - using absolute paths to be sure
                 #       - used dirname(__FILE__, 2) since we are at directory of this php script so tested need goint to parent dir and then one more up, that is 2nd param 2
@@ -1068,7 +1106,7 @@ class ControllerDefault extends ControllerParent{
                 #   TODO GraphLang IDE version is hardwired need to be replaced by obtaining from DB
                 #
                 $fileToCompileAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$fileToCompile;
-                $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR.$outputFileName;
+                $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR."build".DIRECTORY_SEPARATOR.$outputFileName;
 
 
                     // //WAY 1 - THIS IS RUNNING, not using external libs
@@ -1084,8 +1122,12 @@ class ControllerDefault extends ControllerParent{
                     //$compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
 
                     // WAY 2 - bash script to compile using external libs in msys
+                    //$compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
+                    //$compileCommand = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile.sh 2>&1; echo $?"';
+
+                    // WAY 3 - bash script to compile using cmake
                     $compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
-                    $compileCommand = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile.sh 2>&1; echo $?"'; //TODO: output of my shell must be JSON as from python script
+                    $compileCommand = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile_cmake.sh 2>&1; echo $?"';
 
                 #
                 #   RUN COMPILATION AND FILL RESULT ARRAY
