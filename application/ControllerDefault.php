@@ -1030,7 +1030,7 @@ class ControllerDefault extends ControllerParent{
 
                     $libDir = $projectLibDir.DIRECTORY_SEPARATOR.$libraryName;
                     @mkdir($libDir);
-                    $media_output_file = $libDir.DIRECTORY_SEPARATOR."_".$libraryName.".".$mediaObj["media_format"];
+                    $media_output_file = $libDir.DIRECTORY_SEPARATOR.$libraryName.".".$mediaObj["media_format"];
                     file_put_contents($media_output_file, $mediaObj["media_content"]);
                     if ($mediaObj["media_format"] == "zip"){
                         $zip = new ZipArchive();
@@ -1079,14 +1079,51 @@ class ControllerDefault extends ControllerParent{
                 $CMakeListsStr .= "# Add executable from your main.cpp\n";
                 $CMakeListsStr .= "add_executable(main main.cpp)\n";
                 $CMakeListsStr .= "\n";
-                $CMakeListsStr .= "# Tell CMake where to find headers\n";
-                foreach ($librariesList as $libraryName){$CMakeListsStr .= "target_include_directories(main PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName/include)\n";}
-                $CMakeListsStr .= "\n";
-                $CMakeListsStr .= "# Tell CMake where to find the libzmq binary\n";
-                foreach ($librariesList as $libraryName){$CMakeListsStr .= "target_link_directories(main PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName)\n";}
-                $CMakeListsStr .= "\n";
-                $CMakeListsStr .= "# Link against ZeroMQ\n";
-                foreach ($librariesList as $libraryName){$CMakeListsStr .= "target_link_libraries(main PRIVATE $libraryName)\n";}
+
+                    #
+                    #   Add directories with header files (.h)
+                    #       - check if folder exists
+                    #
+                    $CMakeListsStr .= "# Tell CMake where to find headers\n";
+                    foreach ($librariesList as $libraryName){
+                        $CMakeListsStr .= "set(LIBRARY_DIR \"\${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName\")\n";
+                        $CMakeListsStr .= "target_include_directories(main PRIVATE \"\${LIBRARY_DIR}\")\n";
+                        $CMakeListsStr .= "if (EXISTS \"\${LIBRARY_DIR}/include\")\n";
+                        $CMakeListsStr .= "    target_include_directories(main PRIVATE \${LIBRARY_DIR}/include)\n";
+                        $CMakeListsStr .= "endif()\n";
+                        $CMakeListsStr .= "\n";
+                    }
+                    $CMakeListsStr .= "\n";
+
+                    #
+                    #   Add compiled dynamic libraries to cmake (Linux -> .a, .so Windows -> .dll)
+                    #       - here must be check if inside these folder are really compiled libraries
+                    #
+                    foreach ($librariesList as $libraryName){
+                        $CMakeListsStr .= "# Tell CMake where to find the $libraryName binary (if there is binary file)\n";
+                        #
+                        #   1. original way
+                        #$CMakeListsStr .= "target_link_directories(main PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName)\n";
+                        #
+                        #   2. more flexible way using find
+                        $CMakeListsStr .= "set(LIBRARY_DIR \"\${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName\")\n";
+                        $CMakeListsStr .= "find_library(FIND_LIBRARY_FILE_PATH NAMES $libraryName PATHS \"\${LIBRARY_DIR}\")\n";
+                        $CMakeListsStr .= "if (FIND_LIBRARY_FILE_PATH)\n";
+                        $CMakeListsStr .= "    target_link_libraries(main PRIVATE \"\${FIND_LIBRARY_FILE_PATH}\")\n";
+                        $CMakeListsStr .= "    message(STATUS \"Library $libraryName found\")\n";
+                        $CMakeListsStr .= "else()\n";
+                        $CMakeListsStr .= "    message(STATUS \"Could not find $libraryName inside libraries/\")\n";
+                        $CMakeListsStr .= "endif()\n";
+                        $CMakeListsStr .= "\n";
+                    }
+                    $CMakeListsStr .= "\n";
+                    $CMakeListsStr .= "# Link against $libraryName\n";
+                    #
+                    #   THIS WILL BE PART OF PREVIOUS foreach
+                    #
+                    #foreach ($librariesList as $libraryName){
+                    #    $CMakeListsStr .= "target_link_libraries(main PRIVATE $libraryName)\n";
+                    #}
 
                 $cmakeFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."CMakeLists.txt";
                 file_put_contents($cmakeFilepath, $CMakeListsStr);
