@@ -1,10 +1,14 @@
 <?php
+include_once("ModelOsCommands.php");
+
 class ModelProject
 {
     private $db_conn;
+    private $modelOsCommands;
 
     function __construct($db_conn){
         $this->db_conn = $db_conn;
+        $this->modelOsCommands = new ModelOsCommands($db_conn);
     }
 
     function getProjectVersion($projectId = -1){
@@ -258,5 +262,212 @@ class ModelProject
         return $outputArray;
     }
 
+    function compileProjectCpp($codeStr, $projectOutputDir, $outputFileName, $librariesList, $userId, $projectId){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        #
+        #   Create project output directory
+        #
+        if (!$projectOutputDir) {
+            $result = array("status" => 0, "errorMsg" => "Unable to create user project temp dir");
+            echo($result);
+            return;
+        }
+
+        #
+        #   Erase everything from project build directory
+        #
+        $compileOutputDir = $projectOutputDir;
+        @mkdir($compileOutputDir);
+        $result["compileOutputDir"] = $compileOutputDir.DIRECTORY_SEPARATOR."build";
+
+        if (strlen($codeStr) > 0){
+            $fileToCompile = $compileOutputDir.DIRECTORY_SEPARATOR."main.cpp";      #name hardcoded since node code is generated into one file
+            $outFile = fopen($fileToCompile, "w+");
+            fwrite($outFile, $codeStr);
+            fclose($outFile);
+
+            #
+            #   WRITE ADDITIONAL LIBRARIES FROM DB TO DRIVE to folder libraries
+            #
+            $projectLibDir = $compileOutputDir.DIRECTORY_SEPARATOR."libraries";
+            @mkdir($projectLibDir);
+            foreach ($librariesList as $libraryName){
+                $mediaObj = $this->getProjectLibrary($userId, $projectId, $libraryName);
+                if ($mediaObj == null) break;
+
+                $libDir = $projectLibDir.DIRECTORY_SEPARATOR.$libraryName;
+                @mkdir($libDir);
+                $media_output_file = $libDir.DIRECTORY_SEPARATOR.$libraryName.".".$mediaObj["media_format"];
+                file_put_contents($media_output_file, $mediaObj["media_content"]);
+                if ($mediaObj["media_format"] == "zip"){
+                    $zip = new ZipArchive();
+                    $zip->open($media_output_file);
+                    $zip->extractTo($libDir);
+                    $zip->close();
+                }
+            }
+
+            #
+            #   TODO: This is experimental, write compile command into .sh file which could be run through msys
+            #
+            //@mkdir($compileOutputDir.DIRECTORY_SEPARATOR."build");  //create build/ directory
+            $compileFileContent = "";
+            $compileFileContent .= "mkdir -p build #create build directory, do nothing if exists\n";
+            $compileFileContent .= "g++ main.cpp -o build/main.exe \\\n";
+            $wasExternalLibUsed = false;
+            foreach ($librariesList as $libraryName){
+                $mediaObj = $this->getProjectLibrary($userId, $projectId, $libraryName);
+                if ($mediaObj == null) break;
+
+                if ($mediaObj["media_compile_parameters"] == "" || $mediaObj["media_compile_parameters"] == null){
+                    $compileFileContent .= "    -Ilibraries/$libraryName/include \\\n";
+                    $compileFileContent .= "    -Llibraries/$libraryName \\\n";
+                    $compileFileContent .= "    -l$libraryName \\\n";                    //here is used library name as -l for C++ compiler what means that library must have same name as is named in C++ when installed on system
+                    $wasExternalLibUsed = true;
+                }
+            }
+            $compileFileContent .= "2>&1    #redirect error output to stdout\n";
+            $bashCompilationScriptFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."compile.sh";
+            file_put_contents($bashCompilationScriptFilepath, $compileFileContent);
+            chmod($bashCompilationScriptFilepath, 0755);
+
+            #
+            #   ALTERNATIVE CREATE CMakeLists.txt FOR USE cmake
+            #       - simple cmake file, assume there is main.cpp
+            #       - libraries folders are named as written in DB media_name field
+            #
+            $CMakeListsStr = "";
+            $CMakeListsStr .= "cmake_minimum_required(VERSION 3.15)\n";
+            $CMakeListsStr .= "project(MyZmqApp LANGUAGES CXX)\n";
+            $CMakeListsStr .= "\n";
+            $CMakeListsStr .= "# Require C++17 (adjust if you want C++20/23)\n";
+            $CMakeListsStr .= "set(CMAKE_CXX_STANDARD 17)\n";
+            $CMakeListsStr .= "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n";
+            $CMakeListsStr .= "\n";
+            $CMakeListsStr .= "# Add executable from your main.cpp\n";
+            $CMakeListsStr .= "add_executable(main.exe main.cpp)\n";
+            $CMakeListsStr .= "\n";
+
+            #
+            #   Add directories with header files (.h)
+            #       - check if folder exists
+            #
+            $CMakeListsStr .= "# Tell CMake where to find headers\n";
+            foreach ($librariesList as $libraryName){
+                $CMakeListsStr .= "set(LIBRARY_DIR \"\${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName\")\n";
+                $CMakeListsStr .= "target_include_directories(main.exe PRIVATE \"\${LIBRARY_DIR}\")\n";
+                $CMakeListsStr .= "if (EXISTS \"\${LIBRARY_DIR}/include\")\n";
+                $CMakeListsStr .= "    target_include_directories(main.exe PRIVATE \${LIBRARY_DIR}/include)\n";
+                $CMakeListsStr .= "endif()\n";
+                $CMakeListsStr .= "\n";
+            }
+            $CMakeListsStr .= "\n";
+
+            #
+            #   Add compiled dynamic libraries to cmake (Linux -> .a, .so Windows -> .dll)
+            #       - here must be check if inside these folder are really compiled libraries
+            #
+            foreach ($librariesList as $libraryName){
+                $CMakeListsStr .= "# Link $libraryName - Tell CMake where to find the $libraryName binary (if there is binary file)\n";
+                #
+                #   1. original way
+                #$CMakeListsStr .= "target_link_directories(main PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName)\n";
+                #
+                #   2. more flexible way using find
+                $CMakeListsStr .= "set(LIBRARY_DIR \"\${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName\")\n";
+                $CMakeListsStr .= "find_library(FIND_LIBRARY_FILE_PATH NAMES $libraryName PATHS \"\${LIBRARY_DIR}\")\n";
+                $CMakeListsStr .= "if (FIND_LIBRARY_FILE_PATH)\n";
+                $CMakeListsStr .= "    target_link_libraries(main.exe PRIVATE \"\${FIND_LIBRARY_FILE_PATH}\")\n";
+                $CMakeListsStr .= "    message(STATUS \"Library $libraryName found\")\n";
+                $CMakeListsStr .= "else()\n";
+                $CMakeListsStr .= "    message(STATUS \"Could not find $libraryName inside libraries/\")\n";
+                $CMakeListsStr .= "endif()\n";
+                $CMakeListsStr .= "\n";
+            }
+
+            #
+            #   THIS WILL BE PART OF PREVIOUS foreach
+            #
+            #foreach ($librariesList as $libraryName){
+            #    $CMakeListsStr .= "target_link_libraries(main PRIVATE $libraryName)\n";
+            #}
+
+            $cmakeFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."CMakeLists.txt";
+            file_put_contents($cmakeFilepath, $CMakeListsStr);
+
+            $compileCMakeFileContent = "";
+            $compileCMakeFileContent .= "cmake -G \"Unix Makefiles\" -S . -B build\n";
+            $compileCMakeFileContent .= "cmake --build build\n";
+
+            $cmakeCompileScriptFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."compile_cmake.sh";
+            file_put_contents($cmakeCompileScriptFilepath, $compileCMakeFileContent);
+            chmod($cmakeCompileScriptFilepath, 0755);
+
+            #
+            #   Run compilation python script from IDE directory
+            #       - using absolute paths to be sure
+            #       - used dirname(__FILE__, 2) since we are at directory of this php script so tested need goint to parent dir and then one more up, that is 2nd param 2
+            #
+            #   TODO GraphLang IDE version is hardwired need to be replaced by obtaining from DB
+            #
+            $fileToCompileAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$fileToCompile;
+            $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR."build".DIRECTORY_SEPARATOR.$outputFileName;
+
+
+            // //WAY 1 - THIS IS RUNNING, not using external libs
+            // //USING PYTHON SCRIPT TO COMPILE CODE USING g++ - RUNNING - not using external C++ libraries
+            //$compileCommand = "";
+            //$compileCommand .= "python";
+            //$compileCommand .= ' "'.dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion).DIRECTORY_SEPARATOR."python_tools".DIRECTORY_SEPARATOR.'compileCppCode.py"';
+            //$compileCommand .= ' "'.$fileToCompileAbsolutePath.'"';
+            //$compileCommand .= ' "'.$compileFileOutputAbsolutePath.'"';
+            //$compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
+            // //USING BASH SCRIPT
+            //$compileCommand = 'bash -lc "$(cygpath -u \'%cd%\')/'.$bashCompilationScriptFilepath.'"';
+            //$compileCommand = str_replace('\\', '/', $compileCommand);  #even Windows is OK with this when / is used instead of \
+
+            // WAY 2 - bash script to compile using external libs in msys
+            //$compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
+            //$compileCommand = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile.sh 2>&1; echo $?"';
+
+            // WAY 3 - bash script to compile using cmake
+            $compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
+            $compileCommand = "";
+            if ($this->modelOsCommands->isOsWindows()){
+                $compileCommand = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile_cmake.sh 2>&1; echo $?"';
+            }else if($this->modelOsCommands->isOsLinux()){
+                $compileCommand = 'cd $(pwd)/'.$compileOutputDir.' && ./compile_cmake.sh 2>&1; echo $?';
+            }
+
+            #
+            #   RUN COMPILATION AND FILL RESULT ARRAY
+            #
+            $result["outputFileAbsolutePath"] = $compileFileOutputAbsolutePath;
+            $result["compileCommand"] = $compileCommand;
+
+            // WAY 1 - python script to compile
+            //$result["compileCommandOutput"] = shell_exec($compileCommand);  //<------------- COMPILATION TRIGGERED, for python script
+
+            // WAY 2 - using bash script in msys
+            //this output must be JSON: {"status": string, "message": string, "errorMessage": string}
+            $result["compileCommandOutput"] = json_encode(array(
+                "status" => 0,
+                "message" => shell_exec($compileCommand),
+                "errorMsg" => ""
+            ));
+
+            #
+            #   WRITE COMPILATION RESULT
+            #
+            $result["status"] = 1;
+            $result["message"] .= "Project compilation finished, check compilation output.\n";
+        }else{
+            $result["status"] = 0;
+            $result["message"] .= "No source code, string parameter with source code is empty!\n";
+        }
+
+        return $result;
+    }
 }
 ?>

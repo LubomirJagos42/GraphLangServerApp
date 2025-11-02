@@ -39,6 +39,8 @@ class ControllerOsCommands extends ControllerParent{
         $result["processResult"]["startDir"] = $startDir;
         $result["processResult"]["pid"] = $processResult["pid"];
         $result["processResult"]["status"] = $processResult["status"];
+        if (array_key_exists("stdout", $processResult)) {$result["processResult"]["stdout"] = $processResult["stdout"];}
+        if (array_key_exists("stderr", $processResult)) {$result["processResult"]["stderr"] = $processResult["stderr"];}
 
         //        var_dump($result);
         echo(json_encode($result));

@@ -5,7 +5,7 @@
 #
 class ModelOsCommands{
     private $db_conn;
-    private $OperatinSystem;
+    private $OperatingSystem;
 
     function __construct($db_conn){
         $this->db_conn = $db_conn;
@@ -20,7 +20,7 @@ class ModelOsCommands{
 
         //Get Operating System
 
-        if(in_array($this->OperatingSystem, ["Windows NT", "WINNT"])) {
+        if($this->isOsWindows()) {
             //Works only for PHP 4 and above. proc_get_status() does not return correct PID so
             //work around is used as shown below..
             $descriptorspec = array (
@@ -38,24 +38,23 @@ class ModelOsCommands{
                 $ppid = proc_get_status($prog);
                 $pid=$ppid['pid'];
 
-                //experimental, this should close pipes to process to not blocked that
-//                fclose($pipes[0]);  // Close input pipe
-//                fclose($pipes[1]);  // Close output pipe
-//                fclose($pipes[2]);  // Close error pipe
-//                proc_close($process);
-            }
-            else
-            {
+                /*
+                 *  There is problem to get output from stdout and stderr in non-blocking mode, if used proposed function from internet stream_get_content(...)
+                 *  they are blocking PHP response since they are waiting till python script ends.
+                 */
+
+            }else{
                 $result["errorMsg"] = "Failed to execute!";
                 return $result;
             }
+
             $output = array_filter(explode(" ", shell_exec("wmic process get parentprocessid,processid | find \"$pid\"")));
             array_pop($output);
 
             //Process Id is
             $pid = end($output);
         }
-        else if($this->OperatingSystem == "Linux") {
+        else if($this->isOsLinux()) {
 
             //Works only for PHP 4 and above. proc_get_status() does not return correct PID so
             //work around is used as shown below..
@@ -90,29 +89,28 @@ class ModelOsCommands{
     }
 
     function killProcess($pid, $resource = null){
-        if ($this->OperatingSystem == "Linux"){
-            posix_kill($pid);
+        $result = "";
+        if ($this->isOsLinux()){
+            //posix_kill($pid);     //this just send kill signal, not useful
+            $result = exec("kill -9 $pid");     //this sends SIGKILL signal to process
         }
-        if ($this->OperatingSystem == "Windows NT"){
-            /*
-             *  THIS NOT RUNNING NEED TO BE REPAIRED
-             */
+        if ($this->isOsWindows()){
             //proc_terminate($resource);
-            exec('taskkill /F /PID '.$pid);
+            $result = exec('taskkill /F /PID '.$pid);
         }
+
+        return $result;
     }
 
     function checkIfProcessIsRunning($pid = -1){
         $result = array("isRunning" => false, "commandOutput" => "");
 
-        if ($this->OperatingSystem == "Linux"){
-
-            //TODO: Need to be checked if working on linux
-
-            $pidCheckResult = exec('ps -p '.$pid);
-            $result["commandOutput"] = $pidCheckResult;
+        if ($this->isOsLinux()){
+            $pidCheckResult = exec("if ps -p $pid > /dev/null; then echo \"true\"; else echo \"false\"; fi");
+            $result["isRunning"] = $pidCheckResult == "true";
+            $result["commandOutput"] = exec("ps --no-headers -p $pid");
         }
-        if ($this->OperatingSystem == "Windows NT"){
+        if ($this->isOsWindows()){
             $pidCheckResult = exec('tasklist /FI "PID eq '.$pid.'"');
             $result["isRunning"] = !str_contains($pidCheckResult, "No tasks are running");
             $result["commandOutput"] = $pidCheckResult;
@@ -121,6 +119,13 @@ class ModelOsCommands{
         return $result;
     }
 
+    function isOsWindows(){
+        return in_array($this->OperatingSystem, ["Windows NT", "WINNT"]);
+    }
+
+    function isOsLinux(){
+        return in_array($this->OperatingSystem, ["Linux"]);
+    }
 }
 ?>
 
