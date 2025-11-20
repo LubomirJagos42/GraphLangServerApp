@@ -314,7 +314,7 @@ class ModelProject
             //@mkdir($compileOutputDir.DIRECTORY_SEPARATOR."build");  //create build/ directory
             $compileFileContent = "";
             $compileFileContent .= "mkdir -p build #create build directory, do nothing if exists\n";
-            $compileFileContent .= "g++ main.cpp -o build/main.exe \\\n";
+            $compileFileContent .= "g++ main.cpp -g -o build/main.exe \\\n";
             $wasExternalLibUsed = false;
             foreach ($librariesList as $libraryName){
                 $mediaObj = $this->getProjectLibrary($userId, $projectId, $libraryName);
@@ -345,8 +345,12 @@ class ModelProject
             $CMakeListsStr .= "set(CMAKE_CXX_STANDARD 17)\n";
             $CMakeListsStr .= "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n";
             $CMakeListsStr .= "\n";
+//            $CMakeListsStr .= "# Set include debug symbols in both Debug and Release mode\n";
+//            $CMakeListsStr .= "set(CMAKE_CXX_FLAGS_DEBUG_INIT \"-Wall\")\n";
+//            $CMakeListsStr .= "set(CMAKE_CXX_FLAGS_RELEASE_INIT \"-Wall\")\n";
+//            $CMakeListsStr .= "\n";
             $CMakeListsStr .= "# Add executable from your main.cpp\n";
-            $CMakeListsStr .= "add_executable(main.exe main.cpp)\n";
+            $CMakeListsStr .= "add_executable(main main.cpp)\n";
             $CMakeListsStr .= "\n";
 
             #
@@ -356,9 +360,9 @@ class ModelProject
             $CMakeListsStr .= "# Tell CMake where to find headers\n";
             foreach ($librariesList as $libraryName){
                 $CMakeListsStr .= "set(LIBRARY_DIR \"\${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName\")\n";
-                $CMakeListsStr .= "target_include_directories(main.exe PRIVATE \"\${LIBRARY_DIR}\")\n";
+                $CMakeListsStr .= "target_include_directories(main PRIVATE \"\${LIBRARY_DIR}\")\n";
                 $CMakeListsStr .= "if (EXISTS \"\${LIBRARY_DIR}/include\")\n";
-                $CMakeListsStr .= "    target_include_directories(main.exe PRIVATE \${LIBRARY_DIR}/include)\n";
+                $CMakeListsStr .= "    target_include_directories(main PRIVATE \${LIBRARY_DIR}/include)\n";
                 $CMakeListsStr .= "endif()\n";
                 $CMakeListsStr .= "\n";
             }
@@ -378,7 +382,7 @@ class ModelProject
                 $CMakeListsStr .= "set(LIBRARY_DIR \"\${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName\")\n";
                 $CMakeListsStr .= "find_library(FIND_LIBRARY_FILE_PATH NAMES $libraryName PATHS \"\${LIBRARY_DIR}\")\n";
                 $CMakeListsStr .= "if (FIND_LIBRARY_FILE_PATH)\n";
-                $CMakeListsStr .= "    target_link_libraries(main.exe PRIVATE \"\${FIND_LIBRARY_FILE_PATH}\")\n";
+                $CMakeListsStr .= "    target_link_libraries(main PRIVATE \"\${FIND_LIBRARY_FILE_PATH}\")\n";
                 $CMakeListsStr .= "    message(STATUS \"Library $libraryName found\")\n";
                 $CMakeListsStr .= "else()\n";
                 $CMakeListsStr .= "    message(STATUS \"Could not find $libraryName inside libraries/\")\n";
@@ -396,9 +400,12 @@ class ModelProject
             $cmakeFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."CMakeLists.txt";
             file_put_contents($cmakeFilepath, $CMakeListsStr);
 
+            #
+            #   Create compile shell file for Debug mode (this is for now, for debugging in gdb)
+            #
             $compileCMakeFileContent = "";
-            $compileCMakeFileContent .= "cmake -G \"Unix Makefiles\" -S . -B build\n";
-            $compileCMakeFileContent .= "cmake --build build\n";
+            $compileCMakeFileContent .= "cmake -D CMAKE_BUILD_TYPE=Debug -G \"Unix Makefiles\" -S . -B build/Debug\n";
+            $compileCMakeFileContent .= "cmake --build build/Debug\n";
 
             $cmakeCompileScriptFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."compile_cmake.sh";
             file_put_contents($cmakeCompileScriptFilepath, $compileCMakeFileContent);
@@ -412,7 +419,7 @@ class ModelProject
             #   TODO GraphLang IDE version is hardwired need to be replaced by obtaining from DB
             #
             $fileToCompileAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$fileToCompile;
-            $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR."build".DIRECTORY_SEPARATOR.$outputFileName;
+            $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR."build".DIRECTORY_SEPARATOR."Debug".DIRECTORY_SEPARATOR.$outputFileName;
 
 
             // //WAY 1 - THIS IS RUNNING, not using external libs

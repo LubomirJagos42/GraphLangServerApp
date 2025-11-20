@@ -1312,14 +1312,14 @@ class ControllerDefault extends ControllerParent{
              *     1.) cd "$(cygpath -u '%cd%')" → moves bash into the Windows current directory.
              *     2.) ./main.exe & → starts your program in the background.
              *     3.) sleep 1 → gives it a moment to appear in ps. Changed to 1ms, THIS CAN CAUSE PROBLEMS BUT NOW SEEMS FINE.
-             *     4.) ps -W | grep main.exe | awk '{print $4}' > outputFileName → extracts the Windows PID.
+             *     4.) ps -W | grep main | awk '{print $4}' > outputFileName → extracts the Windows PID.
              */
             $cmdStr = "";
             if ($this->modelOsCommands->isOsWindows()){
                 $cmdStr = "bash -lc \"cd \\\"$(cygpath -u '%cd%')\\\" && ./main.exe & sleep 0.7; ps -W | grep main | awk '{print $4}' > \\\"$(cygpath -u '%cd%')\\\"/.current_running_pid\"";
             }
             if ($this->modelOsCommands->isOsLinux()){
-                $cmdStr = "./main.exe & sleep 2; ps -aux | grep main.exe | awk '{print $2}' > .current_running_pid";
+                $cmdStr = "./main & sleep 2; ps -aux | grep main | awk '{print $2}' > .current_running_pid";
             }
 
             $runCompiledProgramResult = $this->modelOsCommands->runCommand($cmdStr, $compilationDirectory);
