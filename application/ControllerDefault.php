@@ -100,6 +100,7 @@ class ControllerDefault extends ControllerParent{
             $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
             $emptyCategories = $this->modelSchematicNodes->getEmptyCategoriesForProject($currentProject);
             $userDefinedNodesClassNames = $this->modelSchematicNodes->getUserDefinedNodesClassNames($currentUser, $currentProject);
+            $categoryChildTree = $this->modelSchematicNodes->getProjectCategoriesAssignment($currentProject);   //this is to create category buttons in navigation correctly
 
             /*
              *  Get node ID and class name from url params from request

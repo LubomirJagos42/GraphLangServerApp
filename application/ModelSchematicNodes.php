@@ -497,6 +497,40 @@ class ModelSchematicNodes{
         return $categoriesList;
     }
 
+    /**
+     * @param $projectId
+     * @description This return categories tree from VIEW OF CHILDREN, if category has no parent (ie. is NULL) then it's top category
+     * @return array( "child_id" => array("child_name", "parent_id", "parent_name"))
+     */
+    function getProjectCategoriesAssignment($projectId){
+        $queryStr = "";
+
+        $queryStr .= "SELECT";
+        $queryStr .= "    category_to_category_assignment.parent_category_id AS category_parent_id,";
+        $queryStr .= "    (SELECT category_name FROM project_categories WHERE internal_id = category_to_category_assignment.parent_category_id) AS category_parent_name,";
+        $queryStr .= "    project_categories.internal_id as category_child_id,";
+        $queryStr .= "    project_categories.category_name as category_child_name";
+        $queryStr .= " FROM category_to_category_assignment";
+        $queryStr .= " RIGHT JOIN project_categories";
+        $queryStr .= " ON";
+        $queryStr .= "    category_to_category_assignment.child_category_id = project_categories.internal_id";
+        $queryStr .= " WHERE";
+        $queryStr .= "    project_categories.project_id=$projectId";
+
+        $result = $this->db_conn->query($queryStr);
+        $categoryTree = array();
+        while ($row = $result->fetch_assoc()){
+
+            $categoryTree[$row["category_child_id"]] = array(
+                "child_name" => $row["category_parent_name"],
+                "parent_id" => $row["category_parent_id"],
+                "parent_name" => $row["category_parent_name"],
+            );
+
+        }
+        return $categoryTree;
+    }
+
     function isUserOwnerOfCategory($userId, $categoryId){
         $queryStr = "";
         $queryStr = "SELECT COUNT(project_id) FROM project_categories WHERE internal_id=$categoryId AND project_id IN (SELECT internal_id FROM user_projects WHERE project_owner=$userId);";

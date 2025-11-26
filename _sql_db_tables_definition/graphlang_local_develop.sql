@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 15, 2025 at 02:20 PM
+-- Generation Time: Nov 26, 2025 at 06:21 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.24
 
@@ -41,14 +41,26 @@ CREATE TABLE `active_users` (
 --
 
 INSERT INTO `active_users` (`internal_id`, `name`, `email`, `password`, `last_logged`, `token`) VALUES
-(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2024-12-25 22:52:08', '4429cddb686f401fc948f16c4da859ce'),
-(2, 'GraphLang_Core', 'graphlang@core.com', '6a284155906c26cbca20c53376bc63ac', '2024-12-25 21:38:14', '90184bbf57579f2202d68b86a9d5b3b5'),
+(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2025-11-26 18:19:00', 'db2b0548bc478bfd910dbf5bb6ef5445'),
+(2, 'GraphLang_Core', 'graphlang@core.com', '6a284155906c26cbca20c53376bc63ac', '2025-09-15 20:24:12', '11f4345cac5b3bc45029c32ed41811c5'),
 (4, 'John Doe', 'john.doe.nonexisting.guy@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
 (5, 'Lucy Skyler', 'lucy.skyler.nonexsiting@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
-(6, 'system_blocks', 'system@core.com', '6a284155906c26cbca20c53376bc63ac', '2024-12-25 21:56:39', '5130ce43428e9f767e3e9daba7d8d9d2'),
+(6, 'system_blocks', 'system@core.com', '6a284155906c26cbca20c53376bc63ac', NULL, ''),
 (7, 'User A', 'a@a.com', '6a284155906c26cbca20c53376bc63ac', '2024-07-07 18:45:36', '23905fab347a8a729ab0114f8d0229d4'),
 (8, 'thomas', 'thomas@thomas.eu', 'ef6e65efc188e7dffd7335b646a85a21', '2024-10-17 17:08:08', '9a48fffb55ad09b85cb1b78de81d7456'),
 (9, 'ggg', 'ggg@ggg.eu', 'ba248c985ace94863880921d8900c53f', '2024-10-17 17:09:15', 'db7cd5e72632f046e923f62246bd0c6b');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `category_to_category_assignment`
+--
+
+CREATE TABLE `category_to_category_assignment` (
+  `parent_category_id` int(11) DEFAULT NULL,
+  `child_category_id` int(11) DEFAULT NULL,
+  `project_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -111,7 +123,10 @@ CREATE TABLE `storage_media` (
   `media_format` varchar(100) DEFAULT NULL,
   `media_language` varchar(1000) DEFAULT NULL,
   `media_version` varchar(1000) DEFAULT NULL,
-  `media_content` longblob NOT NULL
+  `media_content` longblob NOT NULL,
+  `project_id` int(11) DEFAULT NULL,
+  `media_name` varchar(1000) DEFAULT NULL,
+  `media_compile_parameters` varchar(1000) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -164,6 +179,14 @@ ALTER TABLE `active_users`
   ADD PRIMARY KEY (`internal_id`);
 
 --
+-- Indexes for table `category_to_category_assignment`
+--
+ALTER TABLE `category_to_category_assignment`
+  ADD UNIQUE KEY `unique_parent_child_project` (`parent_category_id`,`child_category_id`,`project_id`) USING BTREE,
+  ADD KEY `cat2cat_parent_id` (`project_id`),
+  ADD KEY `cat2cat_child_id` (`child_category_id`);
+
+--
 -- Indexes for table `nodes_to_category_assignment`
 --
 ALTER TABLE `nodes_to_category_assignment`
@@ -187,7 +210,8 @@ ALTER TABLE `registration_waiting_users`
 -- Indexes for table `storage_media`
 --
 ALTER TABLE `storage_media`
-  ADD PRIMARY KEY (`internal_id`);
+  ADD PRIMARY KEY (`internal_id`),
+  ADD KEY `foreignKeyProjectId` (`project_id`);
 
 --
 -- Indexes for table `storage_schematic_blocks`
@@ -240,12 +264,26 @@ ALTER TABLE `user_projects`
 --
 
 --
+-- Constraints for table `category_to_category_assignment`
+--
+ALTER TABLE `category_to_category_assignment`
+  ADD CONSTRAINT `cat2cat_child_id` FOREIGN KEY (`child_category_id`) REFERENCES `project_categories` (`internal_id`),
+  ADD CONSTRAINT `cat2cat_parent_id` FOREIGN KEY (`parent_category_id`) REFERENCES `project_categories` (`internal_id`),
+  ADD CONSTRAINT `cat2cat_project_id` FOREIGN KEY (`project_id`) REFERENCES `user_projects` (`internal_id`);
+
+--
 -- Constraints for table `nodes_to_category_assignment`
 --
 ALTER TABLE `nodes_to_category_assignment`
   ADD CONSTRAINT `foreignKeyCategoryId` FOREIGN KEY (`category_id`) REFERENCES `project_categories` (`internal_id`),
   ADD CONSTRAINT `foreignKeyNodeId` FOREIGN KEY (`node_id`) REFERENCES `storage_schematic_blocks` (`internal_id`),
   ADD CONSTRAINT `foreignKeyProjectId` FOREIGN KEY (`project_id`) REFERENCES `user_projects` (`internal_id`);
+
+--
+-- Constraints for table `storage_media`
+--
+ALTER TABLE `storage_media`
+  ADD CONSTRAINT `foreignKeyProjectId2` FOREIGN KEY (`project_id`) REFERENCES `user_projects` (`internal_id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
