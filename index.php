@@ -50,6 +50,8 @@ include_once("application/ControllerOsCommands.php");
 		$controller->doGetJavascriptForNodes();
 	}else if($q == "projectCategoriesNodesEditor"){
 		$controller->doProjectCategoriesNodesEditor();
+	}else if($q == "projectCategoryTreeEditor"){
+		$controller->doProjectCategoryTreeEditor();
 	}else if($q == "userLogin"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doUserLogin();

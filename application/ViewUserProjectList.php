@@ -58,7 +58,11 @@
                 <td><a href="?q=ide&projectId=<?php echo($projectItem["id"]); ?>">NEW SCHEMATIC</a></td>
                 <td><a href="?q=shapeDesigner&projectId=<?php echo($projectItem["id"]); ?>">NEW SYMBOL</a></td>
                 <td><a href="?q=updateProjectDetails&projectId=<?php echo($projectItem["id"]); ?>">change details</a></td>
-                <td><a href="?q=projectCategoriesNodesEditor&projectId=<?php echo($projectItem["id"]); ?>">categories editor</a></td>
+                <td>
+                    <a href="?q=projectCategoriesNodesEditor&projectId=<?php echo($projectItem["id"]); ?>">categories editor</a>
+                    <br/><br/>
+                    <a href="?q=projectCategoryTreeEditor&projectId=<?php echo($projectItem["id"]); ?>">category tree editor</a>
+                </td>
                 <td><a href="?q=deleteProject&projectId=<?php echo($projectItem["id"]); ?>">delete</a></td>
                 <td><a href="?q=downloadIde&projectId=<?php echo($projectItem["id"]); ?>">download</a></td>
                 <?php if ($debugMode){ ?><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><?php } ?>

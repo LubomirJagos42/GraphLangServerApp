@@ -392,6 +392,26 @@ class ControllerDefault extends ControllerParent{
         }
     }
 
+    function doProjectCategoryTreeEditor(){
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
+
+        $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
+        if ($loginInfo['isLogged'] == 1) {
+            $currentUserId = $this->modelLogin->getCurrentUserId();
+            $currentProjectId = $this->modelLogin->getCurrentUserProjectId();
+
+            $categoryTree = $this->modelSchematicNodes->getProjectCategoriesAssignment($currentProjectId);
+
+            include("ViewProjectCategoryTreeEditor.php");
+        }else{
+            echo("user not logged!<br /><br />\n");
+            echo("<a href='?'>Home</a>");
+        }
+    }
+
     function doUserLogin(){
         $username = $this->getVariableFromPost("username", "");
         $password = $this->getVariableFromPost("password", "");
@@ -838,6 +858,7 @@ class ControllerDefault extends ControllerParent{
             $categoryId = $this->getVariableFromPost("categoryId", -1);
             $nodeId = $this->getVariableFromPost("nodeId", -1);
             $categoryName = $this->getVariableFromPost("categoryName", "Name Unknown");
+            $assignToParentCategoryId = $this->getVariableFromPost("assignToParentCategoryId", -1);
 
             /*
              *  Check conditions if user is owner of category or project before doing operations over DB to really do that stuff.
@@ -870,6 +891,8 @@ class ControllerDefault extends ControllerParent{
                 $result = $this->modelSchematicNodes->addCategory($projectId, $categoryName);
             }else if ($operation == "renameCategory"){
                 $result = $this->modelSchematicNodes->renameCategory($categoryId, $categoryName);
+            }else if ($operation == "assignCategoryToCategory"){
+                $result = $this->modelSchematicNodes->assignCategoryToCategory($categoryId, $assignToParentCategoryId);
             }else{
                 $result["errorMsg"] = "category operation not recognized";
             }

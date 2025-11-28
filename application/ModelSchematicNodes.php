@@ -520,13 +520,16 @@ class ModelSchematicNodes{
         $result = $this->db_conn->query($queryStr);
         $categoryTree = array();
         while ($row = $result->fetch_assoc()){
-
-            $categoryTree[$row["category_child_id"]] = array(
-                "child_name" => $row["category_parent_name"],
-                "parent_id" => $row["category_parent_id"],
-                "parent_name" => $row["category_parent_name"],
-            );
-
+            if(array_key_exists($row["category_child_id"], $categoryTree) == false){
+                $categoryTree[$row["category_child_id"]] = array(
+                    "child_name" => $row["category_child_name"],
+                    "parent_id" => array($row["category_parent_id"]),
+                    "parent_name" => array($row["category_parent_name"]),
+                );
+            }else{
+                array_push($categoryTree[$row["category_child_id"]]["parent_id"], $row["category_parent_id"]);
+                array_push($categoryTree[$row["category_child_id"]]["parent_name"], $row["category_parent_name"]);
+            }
         }
         return $categoryTree;
     }
@@ -634,6 +637,12 @@ class ModelSchematicNodes{
         }
 
         $outputArray["status"] = 1;
+        return $outputArray;
+    }
+
+    function assignCategoryToCategory($categoryId, $assignToParentCategoryId){
+        $queryStr = "";
+        $outputArray = array("status" => -1, "errorMsg" => "NOT IMPLEMENTED in ModelSchematicNodes.php");
         return $outputArray;
     }
 
