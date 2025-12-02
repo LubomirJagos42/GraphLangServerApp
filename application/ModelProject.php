@@ -87,6 +87,11 @@ class ModelProject
         $resultStatus["nodes_to_category_assignment"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");
 
         $queryStr = "";
+        $queryStr .= "DELETE FROM category_to_category_assignment WHERE project_id=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        $resultStatus["category_to_category_assignment"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");
+
+        $queryStr = "";
         $queryStr .= "DELETE FROM media_to_project_assignment WHERE project_id=$projectId;";
         $result = $this->db_conn->query($queryStr);
         $resultStatus["media_to_project_assignment"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");

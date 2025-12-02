@@ -118,18 +118,24 @@ function recursivePrintCategoryTree($currentParentId = null, &$categoryTree, &$v
                 item.addEventListener('dragend', handleDragEnd);
                 item.addEventListener('drop', handleDrop);
             });
+
+            /*
+             *  Refresh ode category tree
+             */
+            getCategoryTree();
         });
 
         /**********************************************************************************************************
          *  Call server method to assign category to some parent category and evaluate response
          **********************************************************************************************************/
-        function manualAssignCategoryToCategory(){
+        function manualCategoryToCategoryAdd(){
             let child_category_id = document.querySelector("input[name='child_category']").value;
             let parent_category_id = document.querySelector("input[name='parent_category']").value;
+            let projectId = document.querySelector('input[name="project_id"]').value;
 
             serverAjaxPostSendReceive(
                 ["q", "categoryOperation"],
-                ["operation", "assignCategoryToCategory", "categoryId", child_category_id, "assignToParentCategoryId", parent_category_id],
+                ["operation", "assignCategoryToCategory", "categoryId", child_category_id, "assignToParentCategoryId", parent_category_id, "projectId", projectId],
                 function(){
                     // console.log(GLOBAL_AJAX_RESPONSE);
                     let outputElement = document.getElementById("manualEditActionResult");
@@ -138,6 +144,114 @@ function recursivePrintCategoryTree($currentParentId = null, &$categoryTree, &$v
                     outputElement.insertAdjacentHTML("beforeend", `<pre>message: ${GLOBAL_AJAX_RESPONSE.message}</pre>`);
                     outputElement.insertAdjacentHTML("beforeend", `<pre>warning: ${GLOBAL_AJAX_RESPONSE.warningMsg}</pre>`);
                     outputElement.insertAdjacentHTML("beforeend", `<pre>error: ${GLOBAL_AJAX_RESPONSE.errorMsg}</pre>`);
+
+                    if (GLOBAL_AJAX_RESPONSE.status == "1"){
+                        getCategoryTree();
+                    }
+                }
+            );
+        }
+
+        function manualCategoryToCategoryRemove(){
+            let child_category_id = document.querySelector("input[name='child_category']").value;
+            let parent_category_id = document.querySelector("input[name='parent_category']").value;
+            let projectId = document.querySelector('input[name="project_id"]').value;
+
+            serverAjaxPostSendReceive(
+                ["q", "categoryOperation"],
+                ["operation", "deleteCategoryToCategory", "categoryId", child_category_id, "assignToParentCategoryId", parent_category_id, "projectId", projectId],
+                function(){
+                    // console.log(GLOBAL_AJAX_RESPONSE);
+                    let outputElement = document.getElementById("manualEditActionResult");
+                    outputElement.innerHTML = "";
+                    outputElement.insertAdjacentHTML("beforeend", `<pre>status: ${GLOBAL_AJAX_RESPONSE.status}</pre>`);
+                    outputElement.insertAdjacentHTML("beforeend", `<pre>message: ${GLOBAL_AJAX_RESPONSE.message}</pre>`);
+                    outputElement.insertAdjacentHTML("beforeend", `<pre>warning: ${GLOBAL_AJAX_RESPONSE.warningMsg}</pre>`);
+                    outputElement.insertAdjacentHTML("beforeend", `<pre>error: ${GLOBAL_AJAX_RESPONSE.errorMsg}</pre>`);
+
+                    if (GLOBAL_AJAX_RESPONSE.status == "1"){
+                        getCategoryTree();
+                    }
+                }
+            );
+        }
+
+        /**********************************************************************************************************
+         *  Get category tree using ajax post
+         **********************************************************************************************************/
+        function recursivePrintCategoryTree(outputElement, currentParentId = null){
+            let treeParentElement = document.createElement("ul");
+            outputElement.appendChild(treeParentElement);
+
+            for (const [categoryId, categoryValues] of Object.entries(categoryTree)){
+                for (let parent_id of categoryValues.parent_id){
+                    if (RECURSIVE_COUNTER > MAX_RECURSION_DEPTH) {
+                        let treeCategoryElement = document.createElement("li");
+                        treeParentElement.appendChild(treeCategoryElement);
+                        treeCategoryElement.insertAdjacentHTML("beforeend", `...WARNING: Max recursion depth ${MAX_RECURSION_DEPTH} reached, not continue next!...`);
+                        return;
+                    }
+
+                    if (parent_id == currentParentId){
+                        let treeCategoryElement = document.createElement("li");
+                        treeCategoryElement.insertAdjacentHTML("beforeend", `<input type="hidden" name="category_id" value="${categoryId}" />`);
+
+                        treeParentElement.appendChild(treeCategoryElement);
+
+                        if (visitedCategoriesIdList.includes(categoryId)){
+                            treeCategoryElement.insertAdjacentHTML("beforeend", `<b>${categoryId} -> ${categoryValues.child_name} (symlink)</b>`);
+                        }else{
+                            visitedCategoriesIdList.push(categoryId);
+                            treeCategoryElement.insertAdjacentHTML("beforeend", `${categoryId} -> ${categoryValues.child_name}`);
+                            RECURSIVE_COUNTER++;
+                            recursivePrintCategoryTree(treeCategoryElement, categoryId);
+                        }
+                        RECURSIVE_COUNTER--;
+                    }
+                }
+            }
+
+        }
+
+        function fillCategoryTree(inputCategoryTree = {}){
+            let outputElement = document.querySelector('#categoryTree');
+            outputElement.innerHTML = "";
+
+            MAX_RECURSION_DEPTH = 10;
+            RECURSIVE_COUNTER = 0;
+
+            categoryTree = inputCategoryTree;
+            console.log(categoryTree);
+            visitedCategoriesIdList = [];
+
+            /*
+             *  This prints category tree, starts from root element
+             */
+            outputElement.insertAdjacentHTML('beforeend', 'Categories starting at root:<br />')
+            recursivePrintCategoryTree(outputElement, null);
+
+            /*
+             *  There could be loop referencies and therefore some categories doesn't have to be printed if they have no null parent in circular referencies
+             *  therefore check if all categories were printed and print additional not used ones in recursive functions.
+             */
+            outputElement.insertAdjacentHTML('beforeend', 'Categories with circular symlinks not acessible from root category:<br />')
+            for (const [categoryId, categoryValues] of Object.entries(categoryTree)){
+                if (visitedCategoriesIdList.includes(categoryId) === false){
+                    recursivePrintCategoryTree(outputElement, categoryId);
+                }
+            }
+        }
+
+        function getCategoryTree(){
+            //project id is taken from hidden input from current page
+            let projectId = document.querySelector('input[name="project_id"]').value;
+            console.log(`-> getting project category tree for project: ${projectId}`);
+
+            serverAjaxPostSendReceive(
+                ["q", "projectCategoryTreeEditor"],
+                ["projectId", projectId, "usePost", "T"],
+                function(){
+                    fillCategoryTree(GLOBAL_AJAX_RESPONSE);
                 }
             );
         }
@@ -155,7 +269,8 @@ function recursivePrintCategoryTree($currentParentId = null, &$categoryTree, &$v
     <form id="manualCategoryEditorForm" method="post">
         Child: <input name="child_category" type="text" />
         Parent: <input name="parent_category" type="text" />
-        <input id="manualCategoryEditButton" type="button" onclick="manualAssignCategoryToCategory()" value="SUBMIT"/>
+        <input id="manualCategoryAssignmentAddButton" type="button" onclick="manualCategoryToCategoryAdd()" value="ADD"/>
+        <input id="manualCategoryAssignmentRemoveButton" type="button" onclick="manualCategoryToCategoryRemove()" value="REMOVE"/>
     </form>
     <br />
     <div id="manualEditActionResult">
@@ -163,8 +278,11 @@ function recursivePrintCategoryTree($currentParentId = null, &$categoryTree, &$v
 </div>
 
 <h2>CATEGORIES TREE</h2>
+<span>
+    <input type="button" value="REFRESH" onClick="getCategoryTree()"/>
+</span>
 <div id="categoryTree">
-<?= recursivePrintCategoryTree(null, $categoryTree, $visitedCategoriesIdList); ?>
+<?php //= recursivePrintCategoryTree(null, $categoryTree, $visitedCategoriesIdList); ?><!--<hr />-->
 </div>
 
 </body>

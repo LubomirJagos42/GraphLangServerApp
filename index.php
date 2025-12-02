@@ -51,6 +51,7 @@ include_once("application/ControllerOsCommands.php");
 	}else if($q == "projectCategoriesNodesEditor"){
 		$controller->doProjectCategoriesNodesEditor();
 	}else if($q == "projectCategoryTreeEditor"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doProjectCategoryTreeEditor();
 	}else if($q == "userLogin"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;

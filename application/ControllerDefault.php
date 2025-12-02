@@ -403,9 +403,18 @@ class ControllerDefault extends ControllerParent{
             $currentUserId = $this->modelLogin->getCurrentUserId();
             $currentProjectId = $this->modelLogin->getCurrentUserProjectId();
 
+            $usePost = null;
+            $usePost = $this->getVariableFromGet("usePost", null);
+            if ($usePost === null) $usePost = $this->getVariableFromPost("usePost", false);
+
             $categoryTree = $this->modelSchematicNodes->getProjectCategoriesAssignment($currentProjectId);
 
-            include("ViewProjectCategoryTreeEditor.php");
+            if ($usePost === true || strtolower($usePost) === "t" || strtolower($usePost) === "true"){
+                echo(json_encode($categoryTree));
+            }else{
+                include("ViewProjectCategoryTreeEditor.php");
+            }
+
         }else{
             echo("user not logged!<br /><br />\n");
             echo("<a href='?'>Home</a>");
@@ -864,7 +873,7 @@ class ControllerDefault extends ControllerParent{
              *  Check conditions if user is owner of category or project before doing operations over DB to really do that stuff.
              */
             //CHECK - user is owner of category for these operations
-            if (in_array($operation, array("deleteNodeFromCategory","deleteCategory","renameCategory"))){
+            if (in_array($operation, array("deleteNodeFromCategory","deleteCategory","renameCategory", "assignCategoryToCategory", "deleteCategoryToCategory"))){
                 if ($this->modelSchematicNodes->isUserOwnerOfCategory($userOwner, $categoryId) == false){
                     $result["errorMsg"] = "User $userOwner is not owner of category $categoryName";
                     return $result;
@@ -892,7 +901,9 @@ class ControllerDefault extends ControllerParent{
             }else if ($operation == "renameCategory"){
                 $result = $this->modelSchematicNodes->renameCategory($categoryId, $categoryName);
             }else if ($operation == "assignCategoryToCategory"){
-                $result = $this->modelSchematicNodes->assignCategoryToCategory($categoryId, $assignToParentCategoryId);
+                $result = $this->modelSchematicNodes->assignCategoryToCategory($categoryId, $assignToParentCategoryId, $projectId);
+            }else if ($operation == "deleteCategoryToCategory"){
+                $result = $this->modelSchematicNodes->deleteCategoryToCategory($categoryId, $assignToParentCategoryId, $projectId);
             }else{
                 $result["errorMsg"] = "category operation not recognized";
             }

@@ -594,6 +594,13 @@ class ModelSchematicNodes{
             return $outputArray;
         }
 
+        $queryStr = "DELETE FROM category_to_category_assignment WHERE parent_category_id=$categoryId OR child_category_id=$categoryId;";
+        $result = $this->db_conn->query($queryStr);
+        if ($result == false){
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
         $queryStr = "DELETE FROM project_categories WHERE internal_id=$categoryId;";
         $result = $this->db_conn->query($queryStr);
         if ($result == false){
@@ -640,9 +647,52 @@ class ModelSchematicNodes{
         return $outputArray;
     }
 
-    function assignCategoryToCategory($categoryId, $assignToParentCategoryId){
+    function assignCategoryToCategory($categoryId, $assignToParentCategoryId, $projectId){
         $queryStr = "";
-        $outputArray = array("status" => -1, "errorMsg" => "NOT IMPLEMENTED in ModelSchematicNodes.php");
+        $outputArray = array("status" => 0, "message" => "", "errorMsg" => "");
+
+        // if parent category is null it means it's assigned to root and if value is null sql restriction to unique key is not checked in DB and there
+        //  will be multiple keys with null so remove this combinations if there are some
+        if ($assignToParentCategoryId == 0){
+            $this->deleteCategoryToCategory($categoryId, $assignToParentCategoryId, $projectId);
+            $assignToParentCategoryId = "null";
+        }
+
+        $queryStr = "INSERT INTO category_to_category_assignment (child_category_id, parent_category_id, project_id) VALUES ($categoryId, $assignToParentCategoryId, $projectId)";
+
+        try{
+            $result = $this->db_conn->query($queryStr);
+        }catch (Exception $e){
+            $outputArray["status"] = -1;
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        $outputArray["status"] = 1;
+        return $outputArray;
+    }
+
+    function deleteCategoryToCategory($categoryId, $assignToParentCategoryId, $projectId){
+        $queryStr = "";
+        $outputArray = array("status" => 0, "message" => "", "errorMsg" => "");
+
+
+        $queryStr = "DELETE FROM category_to_category_assignment";
+        if ($assignToParentCategoryId != 0){
+            $queryStr .= " WHERE child_category_id=$categoryId AND parent_category_id=$assignToParentCategoryId AND project_id= $projectId";
+        }else{
+            $queryStr .= " WHERE child_category_id=$categoryId AND parent_category_id IS null AND project_id= $projectId";
+        }
+
+        try{
+            $result = $this->db_conn->query($queryStr);
+        }catch (Exception $e){
+            $outputArray["status"] = -1;
+            $outputArray["errorMsg"] = $this->db_conn->error;
+            return $outputArray;
+        }
+
+        $outputArray["status"] = 1;
         return $outputArray;
     }
 
