@@ -344,7 +344,7 @@ class ModelProject
             #
             $CMakeListsStr = "";
             $CMakeListsStr .= "cmake_minimum_required(VERSION 3.15)\n";
-            $CMakeListsStr .= "project(MyZmqApp LANGUAGES CXX)\n";
+            $CMakeListsStr .= "project(GraphLangGeneratedApp LANGUAGES CXX)\n";
             $CMakeListsStr .= "\n";
             $CMakeListsStr .= "# Require C++17 (adjust if you want C++20/23)\n";
             $CMakeListsStr .= "set(CMAKE_CXX_STANDARD 17)\n";
@@ -354,6 +354,31 @@ class ModelProject
 //            $CMakeListsStr .= "set(CMAKE_CXX_FLAGS_DEBUG_INIT \"-Wall\")\n";
 //            $CMakeListsStr .= "set(CMAKE_CXX_FLAGS_RELEASE_INIT \"-Wall\")\n";
 //            $CMakeListsStr .= "\n";
+
+
+            #
+            #   gcc diagnostic options documented at: https://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Message-Formatting-Options.html
+            #
+            $CMakeListsStr .= "# Enable JSON diagnostics when using GCC\n";
+            $CMakeListsStr .= "if (CMAKE_CXX_COMPILER_ID STREQUAL \"GNU\")\n";
+            $CMakeListsStr .= "    add_compile_options(-fdiagnostics-format=json -fdiagnostics-plain-output)\n";
+//            $CMakeListsStr .= "    target_compile_options(GraphLangGeneratedApp PRIVATE -fdiagnostics-format=json-pretty -fno-diagnostics-show-caret)\n";
+            $CMakeListsStr .= "endif()\n";
+            $CMakeListsStr .= "\n";
+
+
+            $CMakeListsStr .= "# Directory for logs\n";
+            $CMakeListsStr .= 'set(DIAG_DIR "${CMAKE_BINARY_DIR}/diagnostics")'."\n";
+            $CMakeListsStr .= 'file(MAKE_DIRECTORY "${DIAG_DIR}")'."\n";
+            $CMakeListsStr .= "# For all compiler commands, redirect output to a file\n";
+            if ($this->modelOsCommands->isOsWindows()){
+                $CMakeListsStr .= 'set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E env DIAG_DIR=${DIAG_DIR} bash ${CMAKE_CURRENT_SOURCE_DIR}/capture_diag.sh")'."\n";
+            }elseif ($this->modelOsCommands->isOsWindows()){
+                $CMakeListsStr .= 'set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E env DIAG_DIR=${DIAG_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/capture_diag.sh")'."\n";
+            }
+            $CMakeListsStr .= "\n";
+
+
             $CMakeListsStr .= "# Add executable from your main.cpp\n";
             $CMakeListsStr .= "add_executable(main main.cpp)\n";
             $CMakeListsStr .= "\n";
@@ -463,10 +488,21 @@ class ModelProject
 
             // WAY 2 - using bash script in msys
             //this output must be JSON: {"status": string, "message": string, "errorMessage": string}
+            $compileOutputShellExecResult = shell_exec($compileCommand);
+
+            /*
+             *  Read compilation status from file, this is done using some auxiliary shell script which writes gcc json output to text file on drive
+             */
+            $compilationDianosticDir = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR."build".DIRECTORY_SEPARATOR."Debug".DIRECTORY_SEPARATOR."diagnostics";
+            $compilationDianosticDir = str_replace('\\', '/', $compilationDianosticDir);  #even Windows is OK with this when / is used instead of
+            $diagnosticsFiles = scandir($compilationDianosticDir, SCANDIR_SORT_DESCENDING);
+            $diagnosticFilePath = $compilationDianosticDir."/".$diagnosticsFiles[0];
+            $diagnosticJsonResult = file_get_contents($diagnosticFilePath);
+
             $result["compileCommandOutput"] = json_encode(array(
-                "status" => 0,
-                "message" => shell_exec($compileCommand),
-                "errorMsg" => ""
+                "status" => str_starts_with($diagnosticJsonResult, "[]") ? 0 : -1,
+                "message" => $compileOutputShellExecResult,
+                "errorMsg" => $diagnosticJsonResult
             ));
 
             #
