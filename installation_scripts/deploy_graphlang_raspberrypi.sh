@@ -4,7 +4,7 @@
 #description: This script will connect to raspberry pi over ssh, install needed SW to run MariaDB, php and deploy sql database.
 
 #constants
-SSH_DEVICE_IP=192.168.0.196
+SSH_DEVICE_IP=192.142.0.128
 SSH_USER=pi
 SSH_PASSWORD=raspberry
 SSH_REMOTE_DIR=/tmp/__graphlang_experiment_2
@@ -73,7 +73,8 @@ sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP << EOF
 	echo "$SSH_PASSWORD" | sudo -S rm -R $SSH_REMOTE_GRAPHLANG_FOLDER
 
 	echo "Creating graphlang web folder"
-	mkdir $SSH_REMOTE_GRAPHLANG_FOLDER
+        sudo mkdir $SSH_REMOTE_GRAPHLANG_FOLDER
+        sudo chmod 777 $SSH_REMOTE_GRAPHLANG_FOLDER
 EOF
 
 echo "--> Checking SW if installed on raspi"
@@ -85,9 +86,9 @@ if [ "$DEPLOY_DB" = true ]; then
 
 	echo "--> Deploy .db file to MariaDB server"
 	sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP << EOF
-		mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -e "drop database if exists $GRAPHLANG_DB_NAME;create database $GRAPHLANG_DB_NAME;"
-		mysql -u$MARIADB_USER -p$MARIADB_PASSWORD $GRAPHLANG_DB_NAME < $SSH_REMOTE_DB_FILEPATH
-		mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -e "show databases;use $GRAPHLANG_DB_NAME;show tables;select * from active_users;"
+		echo $SSH_PASSWORD | sudo -S mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -e "drop database if exists $GRAPHLANG_DB_NAME;create database $GRAPHLANG_DB_NAME;"
+		echo $SSH_PASSWORD | sudo -S mysql -u$MARIADB_USER -p$MARIADB_PASSWORD $GRAPHLANG_DB_NAME < $SSH_REMOTE_DB_FILEPATH
+		echo $SSH_PASSWORD | sudo -S mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -e "show databases;use $GRAPHLANG_DB_NAME;show tables;select * from active_users;"
 EOF
 
 else
@@ -117,5 +118,30 @@ fi
 
 echo "--> Set user projects output dir to 777 to be able for php write into it"
 sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP "sudo chmod -R 777 $SSH_REMOTE_GRAPHLANG_FOLDER_USER_PROJECTS_OUTPUT"
+
+
+
+# For Raspi4 to make phpmyadmin running according to: https://forums.raspberrypi.com/viewtopic.php?t=354480
+#
+# add: Include /etc/phpmyadmin/apache.conf
+# to:  /etc/apache2/apache2.conf
+
+
+# Mysql need to be properly set to use root user with root password!!!!
+#
+#
+
+# Change php upload max file size for apache: sudo nano /etc/php/8.2/apache2/php.ini
+#   - edit max_upload... memory_limit....
+#     memory_limit = 1500M
+#     post_max_size = 1500M
+#     upload_max_filesize = 1500M
+#
+#
+
+# Python wheels installation to virtual environment and running it from php
+#
+#
+
 
 echo "--> Installation finished"
