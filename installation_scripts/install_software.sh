@@ -149,3 +149,75 @@ else
 fi
 
 
+# TODO: Mysql need to be properly set to use root user with root password!!!!
+#
+# This is how to purge mysql:
+#   > sudo systemctl stop mariadb
+#
+#   > sudo apt purge mariadb-server mariadb-client mariadb-common
+#   > sudo apt autoremove --purge
+#
+#   > sudo apt update
+#   > sudo apt install mariadb-server mariadb-client # Ubuntu/Debian
+#
+#   > sudo systemctl start mariadb
+#   > sudo mysql_secure_installation
+#       - answer questions, root with password, no secure through unix_sockets
+#
+
+# Change php upload max file size for apache: sudo nano /etc/php/8.2/apache2/php.ini
+#   - edit max_upload... memory_limit....
+#     memory_limit = 1500M
+#     post_max_size = 1500M
+#     upload_max_filesize = 1500M
+#
+phpDir=(/etc/php/*)
+phpDir=${phpDir[0]}
+phpConfigFile=$phpDir/apache2/php.ini
+sudo sed -ir "s/^memory_limit = .*/memory_limit = 300M/" $phpConfigFile
+sudo sed -ir "s/^post_max_size = .*/post_max_size = 1500M/" $phpConfigFile
+sudo sed -ir "s/^upload_max_filesize = .*/upload_max_filesize = 1500M/" $phpConfigFile
+
+# TODO: Python wheels installation to virtual environment and running it from php
+#
+#
+sudo apt install python3-venv
+cd /var/www/html/GraphLangServerApp
+python3 -m venv graphlang_env
+./graphlang_env/bin/pip3 install ./GraphLang/0v1/_python_wheels/*.whl
+./graphlang_env/bin/pip3 install websockets
+./graphlang_env/bin/pip3 install psutils
+
+
+if [[ $() == "aarch64" ]] then
+   #
+   # commands for raspi4
+   #
+   # For RaspberryPi4 increase swap file size - needed for compile code fore ESP32 too memory intensive
+   #   - help forum: https://forums.raspberrypi.com/viewtopic.php?t=46472
+   #
+   sudo sed -ir "s/^CONF_SWAPSIZE.*/CONF_SWAPSIZE=1512/" "/etc/dphys-swapfile"
+
+   # For Raspi4 to make phpmyadmin running according to: https://forums.raspberrypi.com/viewtopic.php?t=354480
+   #
+   # add: Include /etc/phpmyadmin/apache.conf
+   # to:  /etc/apache2/apache2.conf
+   echo -e "\n#Added to enable phpmyadmin in apache\n" >> /etc/apache2/apache2.conf
+   echo -e "Include /etc/phpmyadmin/apache.conf\n" >> /etc/apache2/apache2.conf
+
+   #
+   # vsftpd needs to be configured on raspi4 to be able to write to directory using ftp from remote
+   #
+   echo -e "\n" >> /etc/vsftpd.conf
+   echo -e "local_root=/var/www/html\n" >> /etc/vsftpd.conf
+   echo -e "write_enable=true\n" >> /etc/vsftpd.conf
+
+fi
+
+if [[ $() == "armv6l" ]] then
+   #
+   # commands for raspi zero
+   #
+fi
+
+

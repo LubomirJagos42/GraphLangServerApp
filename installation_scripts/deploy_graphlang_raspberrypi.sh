@@ -7,6 +7,7 @@
 SSH_DEVICE_IP=192.142.0.128
 SSH_USER=pi
 SSH_PASSWORD=raspberry
+
 SSH_REMOTE_DIR=/tmp/__graphlang_experiment_2
 SSH_REMOTE_DB_FILENAME=graphlang_local_develop.sql
 SSH_REMOTE_DB_FILEPATH=$SSH_REMOTE_DIR/$SSH_REMOTE_DB_FILENAME
@@ -77,8 +78,19 @@ sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP << EOF
         sudo chmod 777 $SSH_REMOTE_GRAPHLANG_FOLDER
 EOF
 
+#########################################################################################################################################
+# Install programs on remote target
+#########################################################################################################################################
+
+#
+# TODO: Check if working since file is quite long, this should run whole .sh file on remote target
+#
 echo "--> Checking SW if installed on raspi"
 cat install_software.sh | sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP
+
+#########################################################################################################################################
+# Copying sql db file to target and deploy it
+#########################################################################################################################################
 
 if [ "$DEPLOY_DB" = true ]; then
 	echo "--> Copying SQL DB file to remote device"
@@ -118,30 +130,5 @@ fi
 
 echo "--> Set user projects output dir to 777 to be able for php write into it"
 sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP "sudo chmod -R 777 $SSH_REMOTE_GRAPHLANG_FOLDER_USER_PROJECTS_OUTPUT"
-
-
-
-# For Raspi4 to make phpmyadmin running according to: https://forums.raspberrypi.com/viewtopic.php?t=354480
-#
-# add: Include /etc/phpmyadmin/apache.conf
-# to:  /etc/apache2/apache2.conf
-
-
-# Mysql need to be properly set to use root user with root password!!!!
-#
-#
-
-# Change php upload max file size for apache: sudo nano /etc/php/8.2/apache2/php.ini
-#   - edit max_upload... memory_limit....
-#     memory_limit = 1500M
-#     post_max_size = 1500M
-#     upload_max_filesize = 1500M
-#
-#
-
-# Python wheels installation to virtual environment and running it from php
-#
-#
-
 
 echo "--> Installation finished"
