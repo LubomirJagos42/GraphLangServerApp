@@ -28,7 +28,7 @@ class ControllerOsCommands extends ControllerParent{
         $startDir = str_replace('\\', '/', $startDir);  #even Windows is OK with this when / is used instead of \
 
         $processResult = $this->modelOsCommands->runCommand(
-            'python3 DebuggerCppBrowserInterface.py',
+            'python3 DebuggerCppBrowserInterface.py',   #add argument --logging if need log if something is crashing in tmp/gdb_websocket.log
             $startDir
         );
 
