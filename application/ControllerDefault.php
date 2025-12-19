@@ -496,6 +496,8 @@ class ControllerDefault extends ControllerParent{
             $projectLanguage = isset($_POST["language"]) ? $_POST["language"] : "";
             $projectIdeVersion = isset($_POST["ideVersion"]) ? $_POST["ideVersion"] : "";
             $projectNoImage = isset($_POST["noImage"]) ? $_POST["noImage"] : "";
+            $projectEmbeddedPlatform = isset($_POST["embeddedPlatform"]) ? $_POST["embeddedPlatform"] : "";
+            $projectEmbeddedBoard = isset($_POST["embeddedBoard"]) ? $_POST["embeddedBoard"] : "";
 
             if ($projectName != ""){
                 $projectImageEncoded = "";
@@ -519,7 +521,9 @@ class ControllerDefault extends ControllerParent{
                     $projectVisibility,
                     $projectCodeTemplate,
                     $projectLanguage,
-                    $projectIdeVersion
+                    $projectIdeVersion,
+                    $projectEmbeddedPlatform,
+                    $projectEmbeddedBoard
                 );
 
                 echo("new project ID: $newProjectId<br />\n");
@@ -561,6 +565,8 @@ class ControllerDefault extends ControllerParent{
                 $projectLanguage = $projectInfo["project_language"];
                 $projectIdeVersion = $projectInfo["project_graphlang_version"];
                 $projectImage = $projectInfo["project_image"];
+                $projectEmbeddedPlatform = $projectInfo["project_embedded_platform"];
+                $projectEmbeddedBoard = $projectInfo["project_embedded_board"];
             }else{
                 $projectName = isset($_POST["name"]) ? $_POST["name"] : "";
                 $projectDescription = isset($_POST["description"]) ? $_POST["description"] : "";
@@ -569,6 +575,8 @@ class ControllerDefault extends ControllerParent{
                 $projectLanguage = isset($_POST["language"]) ? $_POST["language"] : "";
                 $projectIdeVersion = isset($_POST["ideVersion"]) ? $_POST["ideVersion"] : "";
                 $projectNoImage = isset($_POST["noImage"]) ? $_POST["noImage"] : "";
+                $projectEmbeddedPlatform = isset($_POST["embeddedPlatform"]) ? $_POST["embeddedPlatform"] : "";
+                $projectEmbeddedBoard = isset($_POST["embeddedBoard"]) ? $_POST["embeddedBoard"] : "";
             }
 
             if ($projectUpdate){
@@ -591,7 +599,9 @@ class ControllerDefault extends ControllerParent{
                     $projectVisibility,
                     $projectCodeTemplate,
                     $projectLanguage,
-                    $projectIdeVersion
+                    $projectIdeVersion,
+                    $projectEmbeddedPlatform,
+                    $projectEmbeddedBoard
                 );
 
                 echo("project UPDATE result: ". $result['status'] ."<br />\n");
@@ -1021,6 +1031,7 @@ class ControllerDefault extends ControllerParent{
             $currentUser = $this->modelLogin->getCurrentUserId();
             $currentProject = $this->modelLogin->getCurrentUserProjectId();
             $ideVersion = $this->modelProject->getProjectVersion($currentProject);
+            $embeddedInfo = $this->modelProject->getProjectEmbeddedInfo($currentProject);
 
             $nodeCodeContent = $this->getVariableFromPost("nodeCodeContent", "");
             $codeStr = hex2bin($nodeCodeContent);
@@ -1029,7 +1040,11 @@ class ControllerDefault extends ControllerParent{
             $librariesList = $this->getVariableFromPost("nodeCodeAdditionalLibraries", "");
             $librariesList = explode(',', $librariesList);
 
-            $result = $this->modelProject->compileProjectCpp($codeStr, $projectOutputDir, $outputFileName, $librariesList, $currentUser, $currentProject);
+            if ($embeddedInfo["target"] == "desktop"){
+                $result = $this->modelProject->compileProjectCpp($codeStr, $projectOutputDir, $outputFileName, $librariesList, $currentUser, $currentProject);
+            }else if ($embeddedInfo["isEmbedded"] == true){
+                $result = $this->modelProject->compileProjectCppEmbedded($codeStr, $embeddedInfo["platform"], $embeddedInfo["board"], $projectOutputDir, $outputFileName, $librariesList, $currentUser, $currentProject);
+            }
         }else{
             $result["errorMsg"] .= "User not logged!\n";
         }

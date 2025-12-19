@@ -29,11 +29,33 @@ class ModelProject
         return "";
     }
 
-    function createProject($userOwner, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion){
+    function getProjectEmbeddedInfo($projectId = -1){
+        $projectId = (int) $projectId;
+        $embeddedInfo = array("isEmbedded" => false, "target" => "");
+
+        if ($projectId > -1) {
+            $queryStr = "SELECT project_code_template, project_embedded_platform, project_embedded_board FROM user_projects WHERE internal_id=$projectId;";
+            $result = $this->db_conn->query($queryStr);
+
+            $row = $result->fetch_assoc();
+            if ($row != null){
+                $embeddedInfo["isEmbedded"] = true;
+                $embeddedInfo["platform"] = $row["project_embedded_platform"];
+                $embeddedInfo["board"] = $row["project_embedded_board"];
+                $embeddedInfo["target"] = $row["project_code_template"];
+            }
+
+            return $embeddedInfo;
+        }
+
+        return $embeddedInfo;
+    }
+
+    function createProject($userOwner, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion, $projectEmbeddedPlatform, $projectEmbeddedBoard){
         $queryStr = "";
         $queryStr .= "INSERT INTO user_projects";
-        $queryStr .= "(project_owner, project_name, project_graphlang_version, project_visibility, project_description, project_image, project_code_template, project_language)";
-        $queryStr .= " VALUES ($userOwner, '$projectName', '$projectIdeVersion', '$projectVisibility', '$projectDescription', '$projectImage', '$projectCodeTemplate', '$projectLanguage')";
+        $queryStr .= "(project_owner, project_name, project_graphlang_version, project_visibility, project_description, project_image, project_code_template, project_language, project_embedded_platform, project_embedded_board)";
+        $queryStr .= " VALUES ($userOwner, '$projectName', '$projectIdeVersion', '$projectVisibility', '$projectDescription', '$projectImage', '$projectCodeTemplate', '$projectLanguage', '$projectEmbeddedPlatform', '$projectEmbeddedBoard')";
 
         $result = $this->db_conn->query($queryStr);
 
@@ -42,7 +64,7 @@ class ModelProject
         return $result;
     }
 
-    function updateProject($userId, $projectId, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion){
+    function updateProject($userId, $projectId, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion, $projectEmbeddedPlatform, $projectEmbeddedBoard){
         $outputArray = array("status" => 0, "errorMsg" => "");
 
         $queryStr = "";
@@ -55,6 +77,8 @@ class ModelProject
         $queryStr .= " project_language = '$projectLanguage',";
         $queryStr .= " project_description = '$projectDescription',";
         $queryStr .= " project_code_template = '$projectCodeTemplate'";
+        $queryStr .= " project_embedded_platform = '$projectEmbeddedPlatform'";
+        $queryStr .= " project_embedded_board = '$projectEmbeddedBoard'";
         $queryStr .= " WHERE internal_id=$projectId AND project_owner=$userId;";
 
         try {
@@ -116,7 +140,7 @@ class ModelProject
 
     function getProject($userOwner, $projectId){
         $queryStr = "";
-        $queryStr .= "SELECT project_name, project_graphlang_version, project_visibility, project_image, project_description, project_code_template, project_language";
+        $queryStr .= "SELECT project_name, project_graphlang_version, project_visibility, project_image, project_description, project_code_template, project_language, project_embedded_platform, project_embedded_board";
         $queryStr .= " FROM user_projects";
         $queryStr .= " WHERE project_owner=$userOwner AND internal_id=$projectId";
 
@@ -140,6 +164,8 @@ class ModelProject
             $outputArray["project_description"] = $row["project_description"];
             $outputArray["project_code_template"] = $row["project_code_template"];
             $outputArray["project_language"] = $row["project_language"];
+            $outputArray["project_embedded_platform"] = $row["project_embedded_platform"];
+            $outputArray["project_embedded_board"] = $row["project_embedded_board"];
         }
 
         return $outputArray;
@@ -517,5 +543,58 @@ class ModelProject
 
         return $result;
     }
+
+    function compileProjectCppEmbedded($codeStr, $embeddedPlatform, $embeddedBoard, $projectOutputDir, $outputFileName, $librariesList, $userId, $projectId){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        #
+        #   Create project output directory
+        #
+        if (!$projectOutputDir) {
+            $result = array("status" => 0, "errorMsg" => "Unable to create user project temp dir", "compileCommandOutput" => "");
+            echo($result);
+            return;
+        }
+
+        #
+        #   Erase everything from project build directory
+        #
+        $compileOutputDir = $projectOutputDir;
+        @mkdir($compileOutputDir);
+        $result["compileOutputDir"] = $compileOutputDir;
+
+        if (strlen($codeStr) > 0){
+
+            #
+            #   Init platformio project
+            #
+            $createProjectCommandStr = "pio project init --board $embeddedBoard -d $compileOutputDir";
+//            $this->modelOsCommands->runCommand($createProjectCommandStr, $compileOutputDir);
+            $compileOutputShellExecResult = shell_exec($createProjectCommandStr);
+
+            $fileToCompile = $compileOutputDir.DIRECTORY_SEPARATOR."src".DIRECTORY_SEPARATOR."main.cpp";      #name hardcoded since node code is generated into one file
+            $outFile = fopen($fileToCompile, "w+");
+            fwrite($outFile, $codeStr);
+            fclose($outFile);
+
+            $result["compileCommandOutput"] = json_encode(array(
+                "status" => 0,
+                "message" => $compileOutputShellExecResult,
+                "errorMsg" => ""
+            ));
+
+            #
+            #   WRITE COMPILATION RESULT
+            #
+            $result["status"] = 1;
+            $result["message"] .= "Project compilation finished, check compilation output.\n";
+        }else{
+            $result["status"] = 0;
+            $result["message"] .= "No source code, string parameter with source code is empty!\n";
+        }
+
+        return $result;
+    }
+
 }
 ?>

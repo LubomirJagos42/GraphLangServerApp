@@ -189,7 +189,7 @@ python3 -m venv graphlang_env
 ./graphlang_env/bin/pip3 install psutils
 
 
-if [[ $() == "aarch64" ]] then
+if [[ $(uname -m) == ^(aarch64)$ ]] then   #compare string using regular expression
    #
    # commands for raspi4
    #
@@ -212,9 +212,26 @@ if [[ $() == "aarch64" ]] then
    echo -e "local_root=/var/www/html\n" >> /etc/vsftpd.conf
    echo -e "write_enable=true\n" >> /etc/vsftpd.conf
 
+   # Platformio set udev rules to be able use stlink boards connected through usb
+   #     source: https://docs.platformio.org/en/latest/core/installation/udev-rules.html#platformio-udev-rules
+   #
+   curl -fsSL https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/system/99-platformio-udev.rules | sudo tee /etc/udev/rules.d/99-platformio-udev.rules
+
+   #sudo service udev restart
+   sudo udevadm control --reload-rules
+   sudo udevadm trigger
+
+   # Raspi4 seems to be disconnected from Wifi probably due power saving management, trying this to turn off it
+   #
+   #
+   # Disable power save and set static IP
+   sudo iw dev wlan0 set power_save off
+   #add line to /etc/rc.local to disable power_save mode
+   echo '/sbin/iw dev wlan0 set power_save off' | sudo tee -a /etc/rc.local
+
 fi
 
-if [[ $() == "armv6l" ]] then
+if [[ $(uname -m) =~ ^(armv6l|armv7l)$ ]] then
    #
    # commands for raspi zero
    #

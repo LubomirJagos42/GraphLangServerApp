@@ -39,8 +39,7 @@
                     <td>
                         <select name="codeTemplate">
                             <option value="desktop" <?= $projectCodeTemplate == "desktop" ? "selected" : "" ?>>desktop</option>
-                            <option value="arduino" <?= $projectCodeTemplate == "esp" ? "selected" : "" ?> disabled>Espressif ESP</option>
-                            <option value="arduino" <?= $projectCodeTemplate == "arduino" ? "selected" : "" ?> disabled>arduino</option>
+                            <option value="embedded" <?= $projectCodeTemplate == "embedded" ? "selected" : "" ?> >embedded</option>
                         </select>
                     </td>
                 </tr>
@@ -67,6 +66,31 @@
                 </tr>
             </table>
             <br />
+
+            <h2>PlatformIO setup (just for embedded target)</h2>
+            <table>
+                <tr>
+                    <td>Embedded platform:</td>
+                    <td>
+                        <select name="embeddedPlatform">
+                            <option value="ststm32">ststm32</option>
+                            <option value="esp32">esp32</option>
+                            <option value="arduino">arduino</option>
+                            <option value="esp8266">esp8266</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Embedded board:</td>
+                    <td>
+                        <select name="embeddedBoard">
+                            <option value="nucleo_g071rb">Nucleo-64 -> nucleo_g071rb</option>
+                        </select>
+                    </td>
+                </tr>
+            </table>
+            <br />
+
             <input type="submit" value="submit"/>
         </form>
 
