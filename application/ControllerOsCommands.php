@@ -37,10 +37,12 @@ class ControllerOsCommands extends ControllerParent{
         $osCommandToStartDebuggerLayer = "";
         if ($embeddedInfo["isEmbedded"] == false) {
             $result["debuggerLayerMode"] = "desktop";
-            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py --logging'; #add argument --logging if need log if something is crashing in tmp/gdb_websocket.log
+//            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py --logging'; #add argument --logging if need log if something is crashing in tmp/gdb_websocket.log
+            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py ';
         }else{
             $result["debuggerLayerMode"] = "embedded";
-            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py  --logging --embedded --projectDir '.$this->modelDirectory->getCurrentUserProjectTempDir($currentProject);
+//            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py  --logging --embedded --projectDir '.$this->modelDirectory->getCurrentUserProjectTempDir($currentProject);
+            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py  --embedded --projectDir '.$this->modelDirectory->getCurrentUserProjectTempDir($currentProject);
         }
         $processResult = $this->modelOsCommands->runCommand($osCommandToStartDebuggerLayer, $startDir);
 
