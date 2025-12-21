@@ -39,7 +39,7 @@ class ModelProject
 
             $row = $result->fetch_assoc();
             if ($row != null){
-                $embeddedInfo["isEmbedded"] = true;
+                $embeddedInfo["isEmbedded"] = $row["project_code_template"] == "embedded";
                 $embeddedInfo["platform"] = $row["project_embedded_platform"];
                 $embeddedInfo["board"] = $row["project_embedded_board"];
                 $embeddedInfo["target"] = $row["project_code_template"];
@@ -144,7 +144,19 @@ class ModelProject
         $queryStr .= " FROM user_projects";
         $queryStr .= " WHERE project_owner=$userOwner AND internal_id=$projectId";
 
-        $outputArray = array("status" => 0, "errorMsg" => "");
+        $outputArray = array(
+            "status" => 0,
+            "errorMsg" => "",
+            "project_name" => "",
+            "project_graphlang_version" => "",
+            "project_visibility" => "",
+            "project_image" => "",
+            "project_description" => "",
+            "project_code_template" => "",
+            "project_language" => "",
+            "project_embedded_platform" => "",
+            "project_embedded_board" => "",
+        );
 
         try {
             $result = $this->db_conn->query($queryStr);
@@ -156,6 +168,13 @@ class ModelProject
 
         if($result){
             $row = $result->fetch_assoc();
+
+            if ($row == false){
+                $outputArray["status"] = -1;
+                $outputArray["errorMsg"] = "no row ind DB for project id: $projectId";
+                return $outputArray;
+            }
+
             $outputArray["status"] = 1;
             $outputArray["project_name"] = $row["project_name"];
             $outputArray["project_graphlang_version"] = $row["project_graphlang_version"];
@@ -447,6 +466,35 @@ class ModelProject
             }
 
             #
+            #   CREATE SHELL FILE TO CAPTURE DIAGNOSTIC INTO FILE like build/Debug/diagnostics/main_20251221_035321.txt
+            #
+            $captureFileContent = '';
+            $captureFileContent .= '#!/bin/bash' . "\n";
+            $captureFileContent .= '# capture_diag.sh - Capture compiler diagnostics' . "\n";
+            $captureFileContent .= "\n";
+            $captureFileContent .= '# Get the diagnostic output directory from environment' . "\n";
+            $captureFileContent .= 'DIAG_DIR="${DIAG_DIR:-./diagnostics}"' . "\n";
+            $captureFileContent .= "\n";
+            $captureFileContent .= '# Create directory if it doesn\'t exist' . "\n";
+            $captureFileContent .= 'mkdir -p "$DIAG_DIR"' . "\n";
+            $captureFileContent .= "\n";
+            $captureFileContent .= '# Generate unique filename based on source file' . "\n";
+            $captureFileContent .= 'SOURCE_FILE="$@"' . "\n";
+            $captureFileContent .= '# Extract just the filename without path and extension' . "\n";
+            $captureFileContent .= 'BASENAME=$(basename "${SOURCE_FILE%.*}")' . "\n";
+            $captureFileContent .= 'TIMESTAMP=$(date +%Y%m%d_%H%M%S)' . "\n";
+            $captureFileContent .= 'DIAG_FILE="${DIAG_DIR}/${BASENAME}_${TIMESTAMP}.txt"' . "\n";
+            $captureFileContent .= "\n";
+            $captureFileContent .= '# Execute the actual compilation command and capture output' . "\n";
+            $captureFileContent .= '"$@" 2>&1 | tee "$DIAG_FILE"' . "\n";
+            $captureFileContent .= "\n";
+            $captureFileContent .= '# Return the compilation exit code' . "\n";
+            $captureFileContent .= 'exit ${PIPESTATUS[0]}' . "\n";
+
+            $captureDiagFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."capture_diag.sh";
+            file_put_contents($captureDiagFilepath, $captureFileContent);
+
+            #
             #   THIS WILL BE PART OF PREVIOUS foreach
             #
             #foreach ($librariesList as $libraryName){
@@ -455,6 +503,7 @@ class ModelProject
 
             $cmakeFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."CMakeLists.txt";
             file_put_contents($cmakeFilepath, $CMakeListsStr);
+
 
             #
             #   Create compile shell file for Debug mode (this is for now, for debugging in gdb)
@@ -523,7 +572,7 @@ class ModelProject
             $compilationDianosticDir = str_replace('\\', '/', $compilationDianosticDir);  #even Windows is OK with this when / is used instead of
             $diagnosticsFiles = scandir($compilationDianosticDir, SCANDIR_SORT_DESCENDING);
             $diagnosticFilePath = $compilationDianosticDir."/".$diagnosticsFiles[0];
-            $diagnosticJsonResult = file_get_contents($diagnosticFilePath);
+            $diagnosticJsonResult = @file_get_contents($diagnosticFilePath);
 
             $result["compileCommandOutput"] = json_encode(array(
                 "status" => str_starts_with($diagnosticJsonResult, "[]") ? 0 : -1,
@@ -570,16 +619,27 @@ class ModelProject
             #
             $createProjectCommandStr = "pio project init --board $embeddedBoard -d $compileOutputDir";
 //            $this->modelOsCommands->runCommand($createProjectCommandStr, $compileOutputDir);
-            $compileOutputShellExecResult = shell_exec($createProjectCommandStr);
+            $initProjectOutputShellExecResult = shell_exec($createProjectCommandStr);
 
             $fileToCompile = $compileOutputDir.DIRECTORY_SEPARATOR."src".DIRECTORY_SEPARATOR."main.cpp";      #name hardcoded since node code is generated into one file
             $outFile = fopen($fileToCompile, "w+");
             fwrite($outFile, $codeStr);
             fclose($outFile);
 
+            #
+            #   Platformio build project in debug mode
+            #
+            $buildProjectCommandStr = "pio debug -d $compileOutputDir";
+            $buildProjectOutputShellExecResult = shell_exec($buildProjectCommandStr);
+
+            $projectBuildShellResult = "";
+            $projectBuildShellResult .= $initProjectOutputShellExecResult;
+            $projectBuildShellResult .= "\n";
+            $projectBuildShellResult .= $buildProjectOutputShellExecResult;
+
             $result["compileCommandOutput"] = json_encode(array(
                 "status" => 0,
-                "message" => $compileOutputShellExecResult,
+                "message" => $projectBuildShellResult,
                 "errorMsg" => ""
             ));
 

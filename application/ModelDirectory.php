@@ -141,5 +141,14 @@ class ModelDirectory
         return $tempDir;
     }
 
+    function getCurrentUserProjectTempDir($projectId){
+        $userId = $this->modelProject->getProjectOwnerId($projectId);
+
+        $rootDir = dirname(__FILE__, 2).DIRECTORY_SEPARATOR."_temp";
+        $fileBaseName = "GraphLangIDE_user_" . $userId . "_project_" . $projectId;
+        $tempDir = $rootDir . DIRECTORY_SEPARATOR . $fileBaseName;
+
+        return $tempDir;
+    }
 }
 ?>

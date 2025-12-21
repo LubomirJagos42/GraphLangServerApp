@@ -17,9 +17,14 @@
                         ["q", "nodeUpload"],
                         ["nodeId", nodeId, "projectId", projectId, "nodeClassName", nodeClassName ,"nodeCodeContent", toHex(nodeCodeContent)],
                         function(){
+                            let currDate = new Date();
+                            let currTime = (new Date()).toLocaleTimeString('eo', { hour12: false });
+
                             // console.log(GLOBAL_AJAX_RESPONSE);
                             let outputElement = document.getElementById("operationOutput");
                             outputElement.innerHTML = "";
+                            outputElement.insertAdjacentHTML("beforeend", `<span>time: ${currTime}</span>`);
+
                             outputElement.insertAdjacentHTML("beforeend", `<pre>status: ${GLOBAL_AJAX_RESPONSE.status}</pre>`);
                             outputElement.insertAdjacentHTML("beforeend", `<pre>message: ${GLOBAL_AJAX_RESPONSE.message}</pre>`);
                             outputElement.insertAdjacentHTML("beforeend", `<pre>warning: ${GLOBAL_AJAX_RESPONSE.warningMsg}</pre>`);

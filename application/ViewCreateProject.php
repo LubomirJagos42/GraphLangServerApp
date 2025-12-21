@@ -40,6 +40,7 @@
                         <select name="codeTemplate">
                             <option value="desktop" <?= $projectCodeTemplate == "desktop" ? "selected" : "" ?>>desktop</option>
                             <option value="embedded" <?= $projectCodeTemplate == "embedded" ? "selected" : "" ?> >embedded</option>
+                            <option value="webassembly" <?= $projectCodeTemplate == "webassembly" ? "selected" : "" ?> >webassembly</option>
                         </select>
                     </td>
                 </tr>
@@ -50,6 +51,7 @@
                             <option value="C/C++" <?= $projectLanguage == "C/C++" ? "selected" : "" ?>>C/C++</option>
                             <option value="python" <?= $projectLanguage == "python" ? "selected" : "" ?> disabled>python</option>
                             <option value="javascript" <?= $projectLanguage == "javascript" ? "selected" : "" ?> disabled>javascript</option>
+                            <option value="java" <?= $projectLanguage == "java" ? "selected" : "" ?> disabled>java</option>
                         </select>
                     </td>
                 </tr>

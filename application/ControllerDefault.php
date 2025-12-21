@@ -111,6 +111,7 @@ class ControllerDefault extends ControllerParent{
             /*
              *  Try to find node data from DB and put them into variables for view
              */
+            $projectInfo = $this->modelProject->getProject($currentUser, $currentProject);
             $currentNodeInfo = $this->modelSchematicNodes->getNode($nodeId, $currentUser, $currentProject, $nodeClassName, true);
             if ($currentNodeInfo) {
                 $nodeClassName = $currentNodeInfo["node_class_name"];
@@ -544,6 +545,25 @@ class ControllerDefault extends ControllerParent{
         }else{
             $this->doUserLoginForm();
         }
+    }
+
+    function doGetProjectInfo($projectId = -1)
+    {
+        $loginInfo = $this->getLoginInfo();
+
+        $result = array("status" => -1);
+
+        if ($loginInfo['isLogged'] == 1) {
+            $currentUser = $this->modelLogin->getCurrentUserId();
+            $projectId = $this->getVariableFromPost("projectId", -1);
+
+            $result = $this->modelProject->getProject($currentUser, $projectId);
+            echo json_encode($result);
+            return;
+        }
+
+        //default return negative error status
+        echo json_encode($result);
     }
 
     function doUpdateProjectDetails(){

@@ -64,6 +64,9 @@ include_once("application/ControllerOsCommands.php");
 		$controller->doUserProjectList();
 	}else if($q == "createProject"){
 		$controller->doCreateProject();
+	}else if($q == "getProjectInfo"){
+		$controller->doGetProjectInfo();
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 	}else if($q == "updateProjectDetails"){
 		$controller->doUpdateProjectDetails();
 	}else if($q == "isUserLogged"){
