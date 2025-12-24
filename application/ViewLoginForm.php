@@ -10,7 +10,166 @@
                 document.loginForm.password.value = MD5(passwordStr);
             }
         </script>
-	</head>
+
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+            }
+
+            form[name="loginForm"] {
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                width: 100%;
+                max-width: 440px;
+                padding: 48px 40px;
+                animation: fadeIn 0.5s ease;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Style all input text/password fields */
+            input[type="text"],
+            input[type="password"] {
+                width: 100%;
+                padding: 16px 20px;
+                background: #f9fafb;
+                border: 2px solid #e5e7eb;
+                border-radius: 12px;
+                color: #1a1a1a;
+                font-size: 16px;
+                font-weight: 400;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                outline: none;
+                margin-bottom: 20px;
+                display: block;
+            }
+
+            input[type="text"]:hover,
+            input[type="password"]:hover {
+                border-color: #d1d5db;
+                background: #ffffff;
+            }
+
+            input[type="text"]:focus,
+            input[type="password"]:focus {
+                border-color: #667eea;
+                background: #ffffff;
+                box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+                transform: translateY(-1px);
+            }
+
+            /* Style the submit button */
+            input[type="submit"] {
+                width: 100%;
+                padding: 16px 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 12px;
+                font-size: 16px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+                display: block;
+                margin-bottom: 24px;
+            }
+
+            input[type="submit"]:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
+            }
+
+            input[type="submit"]:active {
+                transform: translateY(0);
+                box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            }
+
+            /* Style the <br/> tags to add proper spacing */
+            br {
+                display: block;
+                content: "";
+                margin-top: 4px;
+            }
+
+            /* Style the link */
+            form a {
+                color: #667eea;
+                text-decoration: none;
+                font-size: 14px;
+                font-weight: 500;
+                padding: 8px 16px;
+                border-radius: 8px;
+                display: inline-block;
+                transition: all 0.3s ease;
+                position: relative;
+            }
+
+            form a::after {
+                content: '';
+                position: absolute;
+                bottom: 6px;
+                left: 16px;
+                right: 16px;
+                height: 2px;
+                background: #667eea;
+                transform: scaleX(0);
+                transition: transform 0.3s ease;
+            }
+
+            form a:hover {
+                color: #764ba2;
+                background: rgba(102, 126, 234, 0.05);
+            }
+
+            form a:hover::after {
+                transform: scaleX(1);
+            }
+
+            /* Responsive */
+            @media (max-width: 480px) {
+                form[name="loginForm"] {
+                    padding: 36px 28px;
+                }
+
+                input[type="text"],
+                input[type="password"] {
+                    padding: 14px 18px;
+                    font-size: 15px;
+                }
+
+                input[type="submit"] {
+                    padding: 14px 20px;
+                    font-size: 15px;
+                }
+            }
+        </style>
+
+
+    </head>
 	<body>
 
 <?php
@@ -26,14 +185,16 @@ if ($isLogged == false){
 <?php
 }else{
 ?>
-    <span>user is logged</span><br />
-    <span>token: <?php echo($usertoken);?></span><br />
-    <br />
-    SESSION:<br />
-    <span>username: <?php echo($_SESSION['username']);?></span><br/>
-    <span>token: <?php echo($_SESSION['usertoken']);?></span><br/>
-    <br />
-    <a href="?q=notFound">Home</a>
+    <div>
+        <span>user is logged in</span><br /><br />
+        <span>token: <?php echo($usertoken);?></span><br />
+        <br />
+        SESSION:<br />
+        <span>username: <?php echo($_SESSION['username']);?></span><br/>
+        <span>token: <?php echo($_SESSION['usertoken']);?></span><br/>
+        <br />
+        <a href="?q=notFound">Home</a>
+    </div>
 <?php
 }
 ?>
