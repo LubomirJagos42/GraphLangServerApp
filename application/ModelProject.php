@@ -575,7 +575,7 @@ class ModelProject
             $diagnosticJsonResult = @file_get_contents($diagnosticFilePath);
 
             $result["compileCommandOutput"] = json_encode(array(
-                "status" => str_starts_with($diagnosticJsonResult, "[]") ? 0 : -1,
+                "status" => str_starts_with($diagnosticJsonResult, "[]") ? 0 : 1,
                 "message" => $compileOutputShellExecResult,
                 "errorMsg" => $diagnosticJsonResult
             ));
@@ -628,8 +628,18 @@ class ModelProject
 
             #
             #   Platformio build project in debug mode
+            #   At first it change current directory to project directory and run local command to enter debug mode for project.
             #
-            $buildProjectCommandStr = "pio debug -d $compileOutputDir";
+            #       !!!IMPORTANT: using bash from msys2 in windows case to compile to redirect error output to standard output, otherwise compilation errors are not visible in command line
+            #                     redirection is done by this: pio debug 2>&1;
+            #
+            $compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
+            $buildProjectCommandStr = "";
+            if ($this->modelOsCommands->isOsWindows()){
+                $buildProjectCommandStr = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && pio debug 2>&1; echo $?"';
+            }else if($this->modelOsCommands->isOsLinux()){
+                $buildProjectCommandStr = 'cd $(pwd)/'.$compileOutputDir.' && pio debug 2>&1; echo $?';
+            }
             $buildProjectOutputShellExecResult = shell_exec($buildProjectCommandStr);
 
             $projectBuildShellResult = "";
@@ -638,16 +648,17 @@ class ModelProject
             $projectBuildShellResult .= $buildProjectOutputShellExecResult;
 
             $result["compileCommandOutput"] = json_encode(array(
-                "status" => 0,
+                "status" => str_ends_with($buildProjectOutputShellExecResult, "0\n") ? 0 : 1,   //result code is written as last line in output and there is newline symbol (\n) at the end
                 "message" => $projectBuildShellResult,
-                "errorMsg" => ""
+                "errorMsg" => "",
+                "compileCommand" => $buildProjectCommandStr
             ));
 
             #
             #   WRITE COMPILATION RESULT
             #
             $result["status"] = 1;
-            $result["message"] .= "Project compilation finished, check compilation output.\n";
+            $result["message"] .= "Project compilation finished (embedded), check compilation output.\n";
         }else{
             $result["status"] = 0;
             $result["message"] .= "No source code, string parameter with source code is empty!\n";

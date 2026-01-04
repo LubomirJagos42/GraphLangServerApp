@@ -352,6 +352,76 @@ class ControllerDefault extends ControllerParent{
         }
 	}
 
+    function doGetJavascriptCheckProjectSchematicNodes(){
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
+
+        $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
+        if ($loginInfo['isLogged'] == 1) {
+            $currentUserId = $this->modelLogin->getCurrentUserId();
+            $currentProjectId = $this->modelLogin->getCurrentUserProjectId();
+
+            $orderedNodesList = $this->modelSchematicNodes->getOrderedNodeCodeContent($currentUserId, $currentProjectId);
+
+            echo("//Checking each node javascript code if it's valid JS code using eval() function\n");
+            echo("\n");
+
+            echo("let global_schematicNodesWithErrorList = [];\n");
+            echo("\n");
+
+            foreach($orderedNodesList as $nodeInfo){
+                $nodeJSTestCode = "";
+
+                $hexNodeCode = bin2hex($nodeInfo["node_content_code"]);
+
+                $nodeJSTestCode .= "//checking ".$nodeInfo["node_display_name"]." -> ".$nodeInfo["node_class_name"]."\n";
+                $nodeJSTestCode .= "try{\n";
+                $nodeJSTestCode .= "\teval(hex2ascii(\"".$hexNodeCode."\"));\n";
+                $nodeJSTestCode .= "}catch(e){\n";
+                $nodeJSTestCode .= "\tconsole.warn(e);\n";
+                $nodeJSTestCode .= "\tglobal_schematicNodesWithErrorList.push({id: ".$nodeInfo["internal_id"].", displayName: \"".$nodeInfo["node_display_name"]."\", className: \"".$nodeInfo["node_class_name"]."\", error: e});\n";
+                $nodeJSTestCode .= "}\n";
+                $nodeJSTestCode .= "\n";
+
+//                $nodeJSTestCode .= $nodeInfo["node_content_code"];
+//                $nodeJSTestCode .= "\n";
+
+                echo($nodeJSTestCode);
+            }
+            echo("\n");
+
+        }else{
+            echo("user not logged!<br /><br />\n");
+            echo("<a href='?'>Home</a>");
+        }
+    }
+
+    function doDisplayPageCheckProjectSchematicNodes(){
+        $loginInfo = $this->getCurrentUserLoginVariables();
+        $username = $loginInfo['username'];
+        $password = $loginInfo['password'];
+        $token = $loginInfo['token'];
+
+        $loginInfo = $this->modelLogin->isUserLogged($username, $password, $token);
+        if ($loginInfo['isLogged'] == 1) {
+            $currentUser = $this->modelLogin->getCurrentUserId();
+            $currentProject = $this->modelLogin->getCurrentUserProjectId();
+
+            $nodeDefaultTreeDefinition = $this->modelSchematicNodes->getJavascriptObjectsInitDefinitionForProject($currentUser, $currentProject);
+            $nodesNamesWithCategories = $this->modelSchematicNodes->getNodesWithCategories($currentUser, $currentProject);
+
+            $ideVersion = $this->modelProject->getProjectVersion($currentProject);
+            $htmlIncludeDirPrefix = $this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion);
+
+            include("ViewProjectCheckNodesJavascriptCode.php");
+        }else{
+            echo("user not logged!<br /><br />\n");
+            echo("<a href='?'>Home</a>");
+        }
+    }
+
     function doProjectCategoriesNodesEditor(){
         $loginInfo = $this->getCurrentUserLoginVariables();
         $username = $loginInfo['username'];

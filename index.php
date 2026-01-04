@@ -48,6 +48,11 @@ include_once("application/ControllerOsCommands.php");
 	}else if($q == "getJavascriptForNodes"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doGetJavascriptForNodes();
+	}else if($q == "getJavascriptCheckProjectSchematicNodes"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doGetJavascriptCheckProjectSchematicNodes();
+	}else if($q == "displayPageCheckProjectSchematicNodes"){
+		$controller->doDisplayPageCheckProjectSchematicNodes();
 	}else if($q == "projectCategoriesNodesEditor"){
 		$controller->doProjectCategoriesNodesEditor();
 	}else if($q == "projectCategoryTreeEditor"){

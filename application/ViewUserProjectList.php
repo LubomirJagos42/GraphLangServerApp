@@ -64,7 +64,11 @@
                     <a href="?q=projectCategoryTreeEditor&projectId=<?php echo($projectItem["id"]); ?>">category tree editor</a>
                 </td>
                 <td><a href="?q=deleteProject&projectId=<?php echo($projectItem["id"]); ?>">delete</a></td>
-                <td><a href="?q=downloadIde&projectId=<?php echo($projectItem["id"]); ?>">download</a></td>
+                <td>
+                    <a href="?q=downloadIde&projectId=<?php echo($projectItem["id"]); ?>">download</a>
+                    </br></br>
+                    <a href="?q=displayPageCheckProjectSchematicNodes&projectId=<?php echo($projectItem["id"]); ?>">check schematic nodes</a>
+                </td>
                 <?php if ($debugMode){ ?><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><?php } ?>
                 <?php if ($debugMode){ ?><td><a href="?q=getOrderedNodes&projectId=<?php echo($projectItem["id"]); ?>">nodes list</a></td><?php } ?>
                 <?php if ($debugMode){ ?><td><a href="?q=getJavascriptForNodes&projectId=<?php echo($projectItem["id"]); ?>">JS for IDE</a></td><?php } ?>

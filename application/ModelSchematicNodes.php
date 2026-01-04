@@ -308,6 +308,28 @@ class ModelSchematicNodes{
 		return $outputStr;
 	}
 
+    function getOrderedNodeCodeContent($userOwner, $projectId){
+        $userOwner = (int) $userOwner;
+        $projectId = (int) $projectId;
+
+		$orderedNodesList = $this->getOrderedNodesForProject($userOwner, $projectId);
+
+        $outputList = array();
+        foreach ($orderedNodesList as $node){
+			$queryStr = "SELECT internal_id, node_display_name, node_class_name, node_content_code FROM storage_schematic_blocks WHERE internal_id=". $node['internal_id'] ." AND node_owner=$userOwner AND node_project=$projectId;";
+            $result = $this->db_conn->query($queryStr);
+			foreach ($result as $row) {
+                $outputList[] = array(
+                    "internal_id" => $row['internal_id'],
+                    "node_display_name" => $row['node_display_name'],
+                    "node_class_name" => $row['node_class_name'],
+                    "node_content_code" => $row['node_content_code']
+                );
+			}
+		}
+		return $outputList;
+	}
+
     /**
      * @param $userOwner
      * @param $projectId
