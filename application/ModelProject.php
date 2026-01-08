@@ -641,7 +641,8 @@ class ModelProject
             $compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
             $buildProjectCommandStr = "";
             if ($this->modelOsCommands->isOsWindows()){
-                $buildProjectCommandStr = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && pio debug 2>&1; echo $?"';
+                //$buildProjectCommandStr = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && pio debug 2>&1; echo $?"';    //this redirect error output to file
+                $buildProjectCommandStr = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && (pio debug; echo $?) 2> >(tee .compiler_error_output.txt)"';
             }else if($this->modelOsCommands->isOsLinux()){
                 $buildProjectCommandStr = 'cd $(pwd)/'.$compileOutputDir.' && pio debug 2>&1; echo $?';
             }
@@ -655,7 +656,7 @@ class ModelProject
             $result["compileCommandOutput"] = json_encode(array(
                 "status" => str_ends_with($buildProjectOutputShellExecResult, "0\n") ? 0 : 1,   //result code is written as last line in output and there is newline symbol (\n) at the end
                 "message" => $projectBuildShellResult,
-                "errorMsg" => "",
+                "errorMsg" => file_get_contents($compileOutputDir.DIRECTORY_SEPARATOR.".compiler_error_output.txt"),
                 "compileCommand" => $buildProjectCommandStr
             ));
 
