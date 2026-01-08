@@ -106,6 +106,11 @@ class ModelProject
         //there are some foreign keys defined over assignement tables therefore deletion must be performed in right table order, some tables must be erased at start
 
         $queryStr = "";
+        $queryStr .= "DELETE FROM project_deployments WHERE project_id=$projectId;";
+        $result = $this->db_conn->query($queryStr);
+        $resultStatus["project_deployments"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");
+
+        $queryStr = "";
         $queryStr .= "DELETE FROM nodes_to_category_assignment WHERE project_id=$projectId;";
         $result = $this->db_conn->query($queryStr);
         $resultStatus["nodes_to_category_assignment"] = ($result == true ? "OK, removed ".$this->db_conn->affected_rows : "FAIL");

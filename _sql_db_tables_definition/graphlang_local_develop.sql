@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 19, 2025 at 02:54 AM
+-- Generation Time: Jan 08, 2026 at 02:38 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.24
 
@@ -41,7 +41,7 @@ CREATE TABLE `active_users` (
 --
 
 INSERT INTO `active_users` (`internal_id`, `name`, `email`, `password`, `last_logged`, `token`) VALUES
-(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2025-12-19 02:25:10', '3df411d45752745e4ca48a6dff3ee16a'),
+(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2026-01-08 02:28:13', '0881594372eb00333814ebd99cc3835d'),
 (2, 'GraphLang_Core', 'graphlang@core.com', '6a284155906c26cbca20c53376bc63ac', '2025-09-15 20:24:12', '11f4345cac5b3bc45029c32ed41811c5'),
 (4, 'John Doe', 'john.doe.nonexisting.guy@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
 (5, 'Lucy Skyler', 'lucy.skyler.nonexsiting@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
@@ -95,6 +95,22 @@ CREATE TABLE `project_categories` (
   `internal_id` int(11) NOT NULL,
   `category_name` varchar(1000) NOT NULL,
   `project_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `project_deployments`
+--
+
+CREATE TABLE `project_deployments` (
+  `internal_id` int(11) NOT NULL,
+  `name` varchar(1000) NOT NULL,
+  `project_id` int(11) NOT NULL,
+  `description` text NOT NULL,
+  `main_schematic_block_id` int(11) DEFAULT NULL,
+  `main_schematic_block_class_name` varchar(1000) DEFAULT NULL,
+  `isRelease` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -204,6 +220,13 @@ ALTER TABLE `project_categories`
   ADD PRIMARY KEY (`internal_id`);
 
 --
+-- Indexes for table `project_deployments`
+--
+ALTER TABLE `project_deployments`
+  ADD PRIMARY KEY (`internal_id`),
+  ADD KEY `deployment_project_id` (`project_id`);
+
+--
 -- Indexes for table `registration_waiting_users`
 --
 ALTER TABLE `registration_waiting_users`
@@ -245,6 +268,12 @@ ALTER TABLE `project_categories`
   MODIFY `internal_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `project_deployments`
+--
+ALTER TABLE `project_deployments`
+  MODIFY `internal_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `storage_media`
 --
 ALTER TABLE `storage_media`
@@ -281,6 +310,12 @@ ALTER TABLE `nodes_to_category_assignment`
   ADD CONSTRAINT `foreignKeyCategoryId` FOREIGN KEY (`category_id`) REFERENCES `project_categories` (`internal_id`),
   ADD CONSTRAINT `foreignKeyNodeId` FOREIGN KEY (`node_id`) REFERENCES `storage_schematic_blocks` (`internal_id`),
   ADD CONSTRAINT `foreignKeyProjectId` FOREIGN KEY (`project_id`) REFERENCES `user_projects` (`internal_id`);
+
+--
+-- Constraints for table `project_deployments`
+--
+ALTER TABLE `project_deployments`
+  ADD CONSTRAINT `deployment_project_id` FOREIGN KEY (`project_id`) REFERENCES `user_projects` (`internal_id`);
 
 --
 -- Constraints for table `storage_media`

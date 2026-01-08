@@ -285,7 +285,7 @@
 
             <span>Need to be implemented:</span>
             <ul>
-                <li><a href="">Example of some link 1</a><br /></li>
+                <li><a href="">User Media, Libraries, Files...</a><br /></li>
             </ul>
 
             <span>Development stuff:</span>

@@ -68,6 +68,8 @@
                     <a href="?q=downloadIde&projectId=<?php echo($projectItem["id"]); ?>">download</a>
                     </br></br>
                     <a href="?q=displayPageCheckProjectSchematicNodes&projectId=<?php echo($projectItem["id"]); ?>">check schematic nodes</a>
+                    </br></br>
+                    <a href="">deployments</a>
                 </td>
                 <?php if ($debugMode){ ?><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><?php } ?>
                 <?php if ($debugMode){ ?><td><a href="?q=getOrderedNodes&projectId=<?php echo($projectItem["id"]); ?>">nodes list</a></td><?php } ?>
