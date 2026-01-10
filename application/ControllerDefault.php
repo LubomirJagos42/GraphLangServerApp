@@ -5,12 +5,16 @@ include_once("ModelSchematicNodes.php");
 include_once("ModelDirectory.php");
 include_once("ModelProject.php");
 include_once("ModelOsCommands.php");
+include_once("ModelMediaStorage.php");
 
 #Controller Default Class
 class ControllerDefault extends ControllerParent{
     private $modelLogin;
 	private $modelSchematicNodes;
 	private $modelDirectory;
+	private $modelProject;
+	private $modelOsCommands;
+	private $modelMediaStorage;
 
     function __construct($db_conn){
         $this->modelLogin = new ModelLogin($db_conn);
@@ -18,6 +22,7 @@ class ControllerDefault extends ControllerParent{
 		$this->modelDirectory = new ModelDirectory($db_conn);
 		$this->modelProject = new ModelProject($db_conn);
 		$this->modelOsCommands = new ModelOsCommands($db_conn);
+		$this->modelMediaStorage = new ModelMediaStorage($db_conn);
     }
 
     private function getCurrentUserLoginVariables(){
@@ -569,6 +574,7 @@ class ControllerDefault extends ControllerParent{
             $projectNoImage = isset($_POST["noImage"]) ? $_POST["noImage"] : "";
             $projectEmbeddedPlatform = isset($_POST["embeddedPlatform"]) ? $_POST["embeddedPlatform"] : "";
             $projectEmbeddedBoard = isset($_POST["embeddedBoard"]) ? $_POST["embeddedBoard"] : "";
+            $projectEmbeddedFramework = isset($_POST["embeddedFramework"]) ? $_POST["embeddedFramework"] : "";
 
             if ($projectName != ""){
                 $projectImageEncoded = "";
@@ -594,7 +600,8 @@ class ControllerDefault extends ControllerParent{
                     $projectLanguage,
                     $projectIdeVersion,
                     $projectEmbeddedPlatform,
-                    $projectEmbeddedBoard
+                    $projectEmbeddedBoard,
+                    $projectEmbeddedFramework
                 );
 
                 echo("new project ID: $newProjectId<br />\n");
@@ -657,6 +664,7 @@ class ControllerDefault extends ControllerParent{
                 $projectImage = $projectInfo["project_image"];
                 $projectEmbeddedPlatform = $projectInfo["project_embedded_platform"];
                 $projectEmbeddedBoard = $projectInfo["project_embedded_board"];
+                $projectEmbeddedFramework = $projectInfo["project_embedded_framework"];
             }else{
                 $projectName = isset($_POST["name"]) ? $_POST["name"] : "";
                 $projectDescription = isset($_POST["description"]) ? $_POST["description"] : "";
@@ -667,6 +675,7 @@ class ControllerDefault extends ControllerParent{
                 $projectNoImage = isset($_POST["noImage"]) ? $_POST["noImage"] : "";
                 $projectEmbeddedPlatform = isset($_POST["embeddedPlatform"]) ? $_POST["embeddedPlatform"] : "";
                 $projectEmbeddedBoard = isset($_POST["embeddedBoard"]) ? $_POST["embeddedBoard"] : "";
+                $projectEmbeddedFramework = isset($_POST["embeddedFramework"]) ? $_POST["embeddedFramework"] : "";
             }
 
             if ($projectUpdate){
@@ -691,7 +700,8 @@ class ControllerDefault extends ControllerParent{
                     $projectLanguage,
                     $projectIdeVersion,
                     $projectEmbeddedPlatform,
-                    $projectEmbeddedBoard
+                    $projectEmbeddedBoard,
+                    $projectEmbeddedFramework
                 );
 
                 echo("project UPDATE result: ". $result['status'] ."<br />\n");
@@ -703,6 +713,30 @@ class ControllerDefault extends ControllerParent{
                 include("ViewCreateProject.php");
             }
 
+        }else{
+            $this->doUserLoginForm();
+        }
+    }
+
+    function doUserProjectDeployment(){
+        $currentUser = $this->modelLogin->getCurrentUserId();
+        $currentProject = $this->modelLogin->getCurrentUserProjectId();
+        $loginInfo = $this->getLoginInfo();
+
+        if ($loginInfo['isLogged'] == 1){
+            include("ViewProjectDeployments.php");
+        }else{
+            $this->doUserLoginForm();
+        }
+    }
+
+    function doUserMediaStorage(){
+        $currentUser = $this->modelLogin->getCurrentUserId();
+        $currentProject = $this->modelLogin->getCurrentUserProjectId();
+        $loginInfo = $this->getLoginInfo();
+
+        if ($loginInfo['isLogged'] == 1){
+            include("ViewMediaStorage.php");
         }else{
             $this->doUserLoginForm();
         }
@@ -1485,6 +1519,71 @@ class ControllerDefault extends ControllerParent{
             //COMPILATION FAILED
             $result["errorMsg"] = "There was problem to compile program.";
             $result["message"] = $projectCompilationResult["message"];
+        }
+
+        echo(json_encode($result));
+    }
+
+    function doGetPlatformioInfo(){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1) {
+            $requestType = $this->getVariableFromGet("type", "");
+            if ($requestType == "boardList"){
+                $response = $this->modelProject->getAllEmbeddedBoardInfo();
+            }elseif ($requestType == "platformList"){
+                $response = $this->modelProject->getAllEmbeddedPlatformInfo();
+            }elseif ($requestType == "frameworkList"){
+                $response = $this->modelProject->getAllEmbeddedFrameworkInfo();
+            }else{
+                $response = json_encode(array(
+                    "available options" => array("type" => array("boardList", "platformList")),
+                    "example requests" => array(
+                        "q=getPlatformioInfo&type=boardList",
+                        "q=getPlatformioInfo&type=platformList"
+                    )
+                ));
+            }
+
+            echo($response);
+            return;
+        }else{
+            $result["errorMsg"] .= "User not logged!\n";
+        }
+
+        echo(json_encode($result));
+    }
+
+    function doMediaStorageOperation(){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1) {
+            $userId = $this->modelLogin->getCurrentUserId();
+            $operation = $this->getVariableFromGet("operation", "");
+
+            if ($operation == "upload") {
+                $response = '{"operationResult": false, "operation": "upload"}';
+            }elseif ($operation == "remove"){
+                $response = '{"operationResult": false, "operation": "remove"}';
+            }elseif ($operation == "getAllUserMedia"){
+                $response = $this->modelMediaStorage->getAllUserMedia($userId);
+                $response = json_encode($response);
+            }else{
+                $response = json_encode(array(
+                    "available options" => array("operation" => array("upload", "remove")),
+                    "example requests" => array(
+                        "q=mediaStorageOperation&operation=upload",
+                        "q=mediaStorageOperation&type=remove"
+                    )
+                ));
+            }
+
+            echo($response);
+            return;
+        }else{
+            $result["errorMsg"] .= "User not logged!\n";
         }
 
         echo(json_encode($result));

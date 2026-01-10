@@ -74,6 +74,10 @@ include_once("application/ControllerOsCommands.php");
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 	}else if($q == "updateProjectDetails"){
 		$controller->doUpdateProjectDetails();
+	}else if($q == "userProjectDeployment"){
+		$controller->doUserProjectDeployment();
+	}else if ($q == "userMediaStorage"){
+		$controller->doUserMediaStorage();
 	}else if($q == "isUserLogged"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doIsUserLogged();
@@ -105,6 +109,12 @@ include_once("application/ControllerOsCommands.php");
 	}else if ($q == "checkIfProcessIsRunning"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doCheckIfProcessIsRunning();
+	}else if ($q == "getPlatformioInfo"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doGetPlatformioInfo();
+	}else if ($q == "mediaStorageOperation"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doMediaStorageOperation();
 	}else{
 		$controller->doNotFound();
 	}

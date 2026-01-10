@@ -42,7 +42,7 @@ serverAjaxPostSendReceive = function (getParams = [], postParams = [], callbackF
             console.log(response);
 
             GLOBAL_AJAX_RESPONSE = response; //to have access to response in browser
-            if (callbackFunction) callbackFunction();   //RUN CALLBACK FUNCTION IF PROVIDED
+            if (callbackFunction) callbackFunction(response);   //RUN CALLBACK FUNCTION IF PROVIDED
         }
     }
 

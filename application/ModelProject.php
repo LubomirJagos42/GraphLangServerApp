@@ -1,14 +1,17 @@
 <?php
 include_once("ModelOsCommands.php");
+include_once("ModelMediaStorage.php");
 
 class ModelProject
 {
     private $db_conn;
     private $modelOsCommands;
+    private $modelMediaStorage;
 
     function __construct($db_conn){
         $this->db_conn = $db_conn;
         $this->modelOsCommands = new ModelOsCommands($db_conn);
+        $this->modelMediaStorage = new ModelMediaStorage($db_conn);
     }
 
     function getProjectVersion($projectId = -1){
@@ -51,11 +54,11 @@ class ModelProject
         return $embeddedInfo;
     }
 
-    function createProject($userOwner, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion, $projectEmbeddedPlatform, $projectEmbeddedBoard){
+    function createProject($userOwner, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion, $projectEmbeddedPlatform, $projectEmbeddedBoard, $projectEmbeddedFramework){
         $queryStr = "";
         $queryStr .= "INSERT INTO user_projects";
-        $queryStr .= "(project_owner, project_name, project_graphlang_version, project_visibility, project_description, project_image, project_code_template, project_language, project_embedded_platform, project_embedded_board)";
-        $queryStr .= " VALUES ($userOwner, '$projectName', '$projectIdeVersion', '$projectVisibility', '$projectDescription', '$projectImage', '$projectCodeTemplate', '$projectLanguage', '$projectEmbeddedPlatform', '$projectEmbeddedBoard')";
+        $queryStr .= "(project_owner, project_name, project_graphlang_version, project_visibility, project_description, project_image, project_code_template, project_language, project_embedded_platform, project_embedded_board, project_embedded_framework)";
+        $queryStr .= " VALUES ($userOwner, '$projectName', '$projectIdeVersion', '$projectVisibility', '$projectDescription', '$projectImage', '$projectCodeTemplate', '$projectLanguage', '$projectEmbeddedPlatform', '$projectEmbeddedBoard', '$projectEmbeddedFramework')";
 
         $result = $this->db_conn->query($queryStr);
 
@@ -64,7 +67,7 @@ class ModelProject
         return $result;
     }
 
-    function updateProject($userId, $projectId, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion, $projectEmbeddedPlatform, $projectEmbeddedBoard){
+    function updateProject($userId, $projectId, $projectName, $projectDescription, $projectImage, $projectVisibility, $projectCodeTemplate, $projectLanguage, $projectIdeVersion, $projectEmbeddedPlatform, $projectEmbeddedBoard, $projectEmbeddedFramework){
         $outputArray = array("status" => 0, "errorMsg" => "");
 
         $queryStr = "";
@@ -79,6 +82,7 @@ class ModelProject
         $queryStr .= " project_code_template = '$projectCodeTemplate'";
         $queryStr .= " project_embedded_platform = '$projectEmbeddedPlatform'";
         $queryStr .= " project_embedded_board = '$projectEmbeddedBoard'";
+        $queryStr .= " project_embedded_framework = '$projectEmbeddedFramework'";
         $queryStr .= " WHERE internal_id=$projectId AND project_owner=$userId;";
 
         try {
@@ -145,7 +149,7 @@ class ModelProject
 
     function getProject($userOwner, $projectId){
         $queryStr = "";
-        $queryStr .= "SELECT project_name, project_graphlang_version, project_visibility, project_image, project_description, project_code_template, project_language, project_embedded_platform, project_embedded_board";
+        $queryStr .= "SELECT project_name, project_graphlang_version, project_visibility, project_image, project_description, project_code_template, project_language, project_embedded_platform, project_embedded_board, project_embedded_framework";
         $queryStr .= " FROM user_projects";
         $queryStr .= " WHERE project_owner=$userOwner AND internal_id=$projectId";
 
@@ -161,6 +165,7 @@ class ModelProject
             "project_language" => "",
             "project_embedded_platform" => "",
             "project_embedded_board" => "",
+            "project_embedded_framework" => "",
         );
 
         try {
@@ -190,6 +195,7 @@ class ModelProject
             $outputArray["project_language"] = $row["project_language"];
             $outputArray["project_embedded_platform"] = $row["project_embedded_platform"];
             $outputArray["project_embedded_board"] = $row["project_embedded_board"];
+            $outputArray["project_embedded_framework"] = $row["project_embedded_framework"];
         }
 
         return $outputArray;
@@ -309,14 +315,6 @@ class ModelProject
         echo("<br /><br />\n");
     }
 
-    function getProjectLibrary($userId, $projectId, $libraryName = ""){
-        $queryStr = "SELECT media_content, media_format, media_compile_parameters FROM storage_media WHERE media_name='$libraryName' AND (project_id=$projectId OR project_id IS NULL) AND media_owner=$userId;";
-        $result = $this->db_conn->query($queryStr);
-
-        $outputArray = $result->fetch_assoc();  //now fetch just first row
-        return $outputArray;
-    }
-
     function compileProjectCpp($codeStr, $projectOutputDir, $outputFileName, $librariesList, $userId, $projectId){
         $result = array("status" => 0, "errorMsg" => "", "message" => "");
 
@@ -348,7 +346,7 @@ class ModelProject
             $projectLibDir = $compileOutputDir.DIRECTORY_SEPARATOR."libraries";
             @mkdir($projectLibDir);
             foreach ($librariesList as $libraryName){
-                $mediaObj = $this->getProjectLibrary($userId, $projectId, $libraryName);
+                $mediaObj = $this->modelMediaStorage->getProjectLibrary($userId, $projectId, $libraryName);
                 if ($mediaObj == null) break;
 
                 $libDir = $projectLibDir.DIRECTORY_SEPARATOR.$libraryName;
@@ -372,7 +370,7 @@ class ModelProject
             $compileFileContent .= "g++ main.cpp -g -o build/main.exe \\\n";
             $wasExternalLibUsed = false;
             foreach ($librariesList as $libraryName){
-                $mediaObj = $this->getProjectLibrary($userId, $projectId, $libraryName);
+                $mediaObj = $this->modelMediaStorage->getProjectLibrary($userId, $projectId, $libraryName);
                 if ($mediaObj == null) break;
 
                 if ($mediaObj["media_compile_parameters"] == "" || $mediaObj["media_compile_parameters"] == null){
@@ -671,6 +669,26 @@ class ModelProject
         }
 
         return $result;
+    }
+
+    function getAllEmbeddedBoardInfo(){
+        //$allEmbeddedBoardInfoJSON = shell_exec("cat ~/.platformio/platforms/*/boards/*.json");
+        //$allEmbeddedBoardInfoJSON = shell_exec('bash -lc "cat ~/.platformio/platforms/*/boards/*.json | jq -s \'.\'"');
+        $allEmbeddedBoardInfoJSON = shell_exec('pio boards --json-output');
+
+        return $allEmbeddedBoardInfoJSON;
+    }
+
+    function getAllEmbeddedPlatformInfo(){
+        $allEmbeddedBoardInfoJSON = shell_exec('pio platform list --json-output');
+
+        return $allEmbeddedBoardInfoJSON;
+    }
+
+    function getAllEmbeddedFrameworkInfo(){
+        $allEmbeddedBoardInfoJSON = shell_exec('pio platform frameworks --json-output');
+
+        return $allEmbeddedBoardInfoJSON;
     }
 
 }
