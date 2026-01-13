@@ -288,7 +288,7 @@ class ModelSchematicNodes{
 		
 		$outputStr = "";
         foreach ($orderedNodesList as $node){
-			$queryStr = "SELECT node_content_code FROM storage_schematic_blocks WHERE internal_id=". $node['internal_id'] ." AND node_owner=$userOwner AND node_project=$projectId;";
+			$queryStr = "SELECT node_content_code, node_class_name FROM storage_schematic_blocks WHERE internal_id=". $node['internal_id'] ." AND node_owner=$userOwner AND node_project=$projectId;";
 			$outputStr .= "//Result of SQL query:\n";
 			$outputStr .= "//".$queryStr."\n";
 			$outputStr .= "\n";
@@ -297,6 +297,8 @@ class ModelSchematicNodes{
 //                $outputStr .= "console.log('Loading node ".$row['internal_id']."');\n\n";
                 $outputStr .= "try{\n";
                 $outputStr .= $row['node_content_code'];
+                $outputStr .= "\n";
+                $outputStr .= "GraphLang.StorageHexNodeSchematics[\"".$row["node_class_name"]."\"] = \"".bin2hex($row['node_content_code'])."\";\n";
                 $outputStr .= "\n}catch(e){\n";
 //                $outputStr .= "\tconsole.error('ERROR loading node id: " .  $row['internal_id'] . "');\n";
                 $outputStr .= "\tconsole.error(e);\n";

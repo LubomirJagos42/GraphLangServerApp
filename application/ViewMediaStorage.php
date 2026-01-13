@@ -67,6 +67,12 @@
                             newRow += `<td>${rowJSON.media_language}</td>`;
                             newRow += `<td>${rowJSON.media_version}</td>`;
                             newRow += `<td>${rowJSON.media_compile_parameters}</td>`;
+
+                            newRow += `<td>`;
+                            newRow += `<input type="button" name="deleteMediaItem" onClick="alert('delete media item clicked');"value="DELETE" /><br />`;
+                            newRow += `<input type="button" name="editMediaItem" onClick="alert('edit media item clicked');"value="EDIT" /><br />`;
+                            newRow += `</td>`;
+
                             newRow += `</tr>\n`;
 
                             tbody.insertAdjacentHTML('beforeend', newRow);
