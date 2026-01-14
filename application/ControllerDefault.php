@@ -1168,6 +1168,8 @@ class ControllerDefault extends ControllerParent{
                 $result = $this->modelProject->compileProjectCpp($codeStr, $projectOutputDir, $outputFileName, $librariesList, $currentUser, $currentProject);
             }else if ($embeddedInfo["isEmbedded"] == true){
                 $result = $this->modelProject->compileProjectCppEmbedded($codeStr, $embeddedInfo["platform"], $embeddedInfo["board"], $projectOutputDir, $outputFileName, $librariesList, $currentUser, $currentProject);
+            }else if ($embeddedInfo["target"] == "webassembly"){
+                $result = $this->modelProject->compileProjectCppWebassembly($codeStr, $projectOutputDir, $outputFileName, $librariesList, $currentUser, $currentProject);
             }
         }else{
             $result["errorMsg"] .= "User not logged!\n";

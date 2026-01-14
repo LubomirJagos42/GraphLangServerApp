@@ -596,6 +596,222 @@ class ModelProject
         return $result;
     }
 
+    /**
+     * @param $codeStr
+     * @param $projectOutputDir
+     * @param $outputFileName
+     * @param $librariesList
+     * @param $userId
+     * @param $projectId
+     * @return array|void
+     *
+     * @description Copy of compileProjectCpp(...). Creates project for emscripten compiled using cmake.
+     */
+    function compileProjectCppWebassembly($codeStr, $projectOutputDir, $outputFileName, $librariesList, $userId, $projectId){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        #
+        #   Create project output directory
+        #
+        if (!$projectOutputDir) {
+            $result = array("status" => 0, "errorMsg" => "Unable to create user project temp dir");
+            echo($result);
+            return;
+        }
+
+        #
+        #   Erase everything from project build directory
+        #
+        $compileOutputDir = $projectOutputDir;
+        @mkdir($compileOutputDir);
+        $result["compileOutputDir"] = $compileOutputDir.DIRECTORY_SEPARATOR."build";
+
+        if (strlen($codeStr) > 0){
+            $fileToCompile = $compileOutputDir.DIRECTORY_SEPARATOR."main.cpp";      #name hardcoded since node code is generated into one file
+            $outFile = fopen($fileToCompile, "w+");
+            fwrite($outFile, $codeStr);
+            fclose($outFile);
+
+            #
+            #   WRITE ADDITIONAL LIBRARIES FROM DB TO DRIVE to folder libraries
+            #
+            $projectLibDir = $compileOutputDir.DIRECTORY_SEPARATOR."libraries";
+            @mkdir($projectLibDir);
+            foreach ($librariesList as $libraryName){
+                $mediaObj = $this->modelMediaStorage->getProjectLibrary($userId, $projectId, $libraryName);
+                if ($mediaObj == null) break;
+
+                $libDir = $projectLibDir.DIRECTORY_SEPARATOR.$libraryName;
+                @mkdir($libDir);
+                $media_output_file = $libDir.DIRECTORY_SEPARATOR.$libraryName.".".$mediaObj["media_format"];
+                file_put_contents($media_output_file, $mediaObj["media_content"]);
+                if ($mediaObj["media_format"] == "zip"){
+                    $zip = new ZipArchive();
+                    $zip->open($media_output_file);
+                    $zip->extractTo($libDir);
+                    $zip->close();
+                }
+            }
+
+            #
+            #   CREATE CMakeLists.txt FOR USE cmake
+            #       - simple cmake file, assume there is main.cpp
+            #       - libraries folders are named as written in DB media_name field
+            #
+            $CMakeListsStr = "";
+            $CMakeListsStr .= "cmake_minimum_required(VERSION 3.10)\n";
+            $CMakeListsStr .= "project(GraphLangGeneratedApp)\n";
+            $CMakeListsStr .= "\n";
+            $CMakeListsStr .= "# Require C++17 (adjust if you want C++20/23)\n";
+            $CMakeListsStr .= "set(CMAKE_CXX_STANDARD 17)\n";
+            $CMakeListsStr .= "\n";
+
+
+            $CMakeListsStr .= "# Add executable from your main.cpp\n";
+            $CMakeListsStr .= "add_executable(main main.cpp)\n";
+            $CMakeListsStr .= "\n";
+
+            #
+            #   Add directories with header files (.h)
+            #       - check if folder exists
+            #
+            $CMakeListsStr .= "# Tell CMake where to find headers\n";
+            foreach ($librariesList as $libraryName){
+                $CMakeListsStr .= "set(LIBRARY_DIR \"\${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName\")\n";
+                $CMakeListsStr .= "target_include_directories(main PRIVATE \"\${LIBRARY_DIR}\")\n";
+                $CMakeListsStr .= "if (EXISTS \"\${LIBRARY_DIR}/include\")\n";
+                $CMakeListsStr .= "    target_include_directories(main PRIVATE \${LIBRARY_DIR}/include)\n";
+                $CMakeListsStr .= "endif()\n";
+                $CMakeListsStr .= "\n";
+            }
+            $CMakeListsStr .= "\n";
+
+            #
+            #   Add compiled dynamic libraries to cmake (Linux -> .a, .so Windows -> .dll)
+            #       - here must be check if inside these folder are really compiled libraries
+            #
+            foreach ($librariesList as $libraryName){
+                $CMakeListsStr .= "# Link $libraryName - Tell CMake where to find the $libraryName binary (if there is binary file)\n";
+                #
+                #   1. original way
+                #$CMakeListsStr .= "target_link_directories(main PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName)\n";
+                #
+                #   2. more flexible way using find
+                $CMakeListsStr .= "set(LIBRARY_DIR \"\${CMAKE_CURRENT_SOURCE_DIR}/libraries/$libraryName\")\n";
+                $CMakeListsStr .= "find_library(FIND_LIBRARY_FILE_PATH NAMES $libraryName PATHS \"\${LIBRARY_DIR}\")\n";
+                $CMakeListsStr .= "if (FIND_LIBRARY_FILE_PATH)\n";
+                $CMakeListsStr .= "\ttarget_link_libraries(main PRIVATE \"\${FIND_LIBRARY_FILE_PATH}\")\n";
+                $CMakeListsStr .= "\tmessage(STATUS \"Library $libraryName found\")\n";
+                $CMakeListsStr .= "else()\n";
+                $CMakeListsStr .= "\tmessage(STATUS \"Could not find $libraryName inside libraries/\")\n";
+                $CMakeListsStr .= "endif()\n";
+                $CMakeListsStr .= "\n";
+            }
+
+            $CMakeListsStr .= 'if(EMSCRIPTEN)'."\n";
+            $CMakeListsStr .= "\t".'# WebAssembly build'."\n";
+            $CMakeListsStr .= "\t".'set_target_properties(main PROPERTIES SUFFIX ".html")'."\n";
+            $CMakeListsStr .= "\n";
+            $CMakeListsStr .= "\t".'target_link_options(main PRIVATE'."\n";
+            $CMakeListsStr .= "\t\t".'-sWASM=1'."\n";
+            $CMakeListsStr .= "\t\t".'-sALLOW_MEMORY_GROWTH=1'."\n";
+            $CMakeListsStr .= "\t\t"."-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']"."\n";
+            $CMakeListsStr .= "\t\t".'-sINITIAL_MEMORY=33554432'."\n";
+            $CMakeListsStr .= "\t".')'."\n";
+
+            $CMakeListsStr .= "\t".'target_compile_definitions(main PRIVATE WASM_BUILD)'."\n";
+            $CMakeListsStr .= 'else()'."\n";
+            $CMakeListsStr .= "\t".'# Native build'."\n";
+            $CMakeListsStr .= "\t".'target_link_libraries(main pthread)'."\n";
+            $CMakeListsStr .= "\t".'find_package(OpenGL REQUIRED)'."\n";
+            $CMakeListsStr .= "\t".'target_link_libraries(main OpenGL::GL)'."\n";
+            $CMakeListsStr .= 'endif()'."\n";
+            $CMakeListsStr .= "\n";
+
+            $cmakeFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."CMakeLists.txt";
+            file_put_contents($cmakeFilepath, $CMakeListsStr);
+
+
+            #
+            #   Wasm toolchain file
+            #
+            $wasmToolchainStr = "";
+            $wasmToolchainStr .= "set(CMAKE_SYSTEM_NAME Emscripten)\n";
+            $wasmToolchainStr .= "set(CMAKE_C_COMPILER emcc)\n";
+            $wasmToolchainStr .= "set(CMAKE_CXX_COMPILER em++)\n";
+            $wasmToolchainStr .= "set(CMAKE_AR emar)\n";
+            $wasmToolchainStr .= "set(CMAKE_RANLIB emranlib)\n";
+            $wasmToolchainStr .= "\n";
+
+            $wasmToolchainStr .= "# This is crucial!\n";
+            $wasmToolchainStr .= "set(EMSCRIPTEN 1)\n";
+            $wasmToolchainStr .= "\n";
+            file_put_contents($compileOutputDir.DIRECTORY_SEPARATOR."wasm-toolchain.cmake", $wasmToolchainStr);
+
+
+            #
+            #   Create compile shell file for Debug mode (this is for now, for debugging in gdb)
+            #
+            $compileCMakeFileContent = "";
+            $compileCMakeFileContent .= "#because of caching some webassembly emscripten first remove buidl/Debug folder\n";
+            $compileCMakeFileContent .= "rm -r build/Debug\n";
+            $compileCMakeFileContent .= "emcmake cmake -D CMAKE_TOOLCHAIN_FILE=wasm-toolchain.cmake -D CMAKE_BUILD_TYPE=Debug -G \"Unix Makefiles\" -S . -B build/Debug\n";
+            $compileCMakeFileContent .= "cmake --build build/Debug\n";
+            $compileCMakeFileContent .= "\n";
+
+            $cmakeCompileScriptFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."compile_cmake.sh";
+            file_put_contents($cmakeCompileScriptFilepath, $compileCMakeFileContent);
+            chmod($cmakeCompileScriptFilepath, 0755);
+
+            #
+            #   Run compilation python script from IDE directory
+            #       - using absolute paths to be sure
+            #       - used dirname(__FILE__, 2) since we are at directory of this php script so tested need goint to parent dir and then one more up, that is 2nd param 2
+            #
+            #   TODO GraphLang IDE version is hardwired need to be replaced by obtaining from DB
+            #
+            $fileToCompileAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$fileToCompile;
+            $compileFileOutputAbsolutePath = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$compileOutputDir.DIRECTORY_SEPARATOR."build".DIRECTORY_SEPARATOR."Debug".DIRECTORY_SEPARATOR.$outputFileName;
+
+
+            // Create bash script to compile project by call cmake command
+            $compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
+            $compileCommand = "";
+            if ($this->modelOsCommands->isOsWindows()){
+                $compileCommand = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile_cmake.sh 2>&1; echo $?"';
+            }else if($this->modelOsCommands->isOsLinux()){
+                $compileCommand = 'cd $(pwd)/'.$compileOutputDir.' && ./compile_cmake.sh 2>&1; echo $?';
+            }
+
+            #
+            #   RUN COMPILATION AND FILL RESULT ARRAY
+            #
+            $result["outputFileAbsolutePath"] = $compileFileOutputAbsolutePath;
+            $result["compileCommand"] = $compileCommand;
+
+            // Call bash script which calls cmake command
+            //this output must be JSON: {"status": string, "message": string, "errorMessage": string}
+            $compileOutputShellExecResult = shell_exec($compileCommand);
+
+            $result["compileCommandOutput"] = json_encode(array(
+                "status" => str_ends_with($compileOutputShellExecResult, "0") ? 0 : 1,
+                "message" => $compileOutputShellExecResult,
+                "errorMsg" => "TODO: Need to be added error message if any during compilation!"
+            ));
+
+            #
+            #   WRITE COMPILATION RESULT
+            #
+            $result["status"] = 1;
+            $result["message"] .= "Project compilation finished, check compilation output.\n";
+        }else{
+            $result["status"] = 0;
+            $result["message"] .= "No source code, string parameter with source code is empty!\n";
+        }
+
+        return $result;
+    }
+
     function compileProjectCppEmbedded($codeStr, $embeddedPlatform, $embeddedBoard, $projectOutputDir, $outputFileName, $librariesList, $userId, $projectId){
         $result = array("status" => 0, "errorMsg" => "", "message" => "");
 
