@@ -565,16 +565,17 @@ class ControllerDefault extends ControllerParent{
 
         if ($loginInfo['isLogged'] == 1){
 
-            $projectName = isset($_POST["name"]) ? $_POST["name"] : "";
-            $projectDescription = isset($_POST["description"]) ? $_POST["description"] : "";
-            $projectVisibility = isset($_POST["visibility"]) ? $_POST["visibility"] : "";
-            $projectCodeTemplate = isset($_POST["codeTemplate"]) ? $_POST["codeTemplate"] : "";
-            $projectLanguage = isset($_POST["language"]) ? $_POST["language"] : "";
-            $projectIdeVersion = isset($_POST["ideVersion"]) ? $_POST["ideVersion"] : "";
-            $projectNoImage = isset($_POST["noImage"]) ? $_POST["noImage"] : "";
-            $projectEmbeddedPlatform = isset($_POST["embeddedPlatform"]) ? $_POST["embeddedPlatform"] : "";
-            $projectEmbeddedBoard = isset($_POST["embeddedBoard"]) ? $_POST["embeddedBoard"] : "";
-            $projectEmbeddedFramework = isset($_POST["embeddedFramework"]) ? $_POST["embeddedFramework"] : "";
+            $projectName = $this->getVariableFromPost("name", "");
+            $projectDescription = $this->getVariableFromPost("description", "");
+            $projectVisibility = $this->getVariableFromPost("visibility", "");
+            $projectCodeTemplate = $this->getVariableFromPost("codeTemplate", "");
+            $projectLanguage = $this->getVariableFromPost("language", "");
+            $projectIdeVersion = $this->getVariableFromPost("ideVersion", "");
+            $projectNoImage = $this->getVariableFromPost("noImage", "");
+            $projectEmbeddedPlatform = $this->getVariableFromPost("embeddedPlatform", "");
+            $projectEmbeddedBoard = $this->getVariableFromPost("embeddedBoard", "");
+            $projectEmbeddedFramework = $this->getVariableFromPost("embeddedFramework", "");
+            $projectCreateEmpty = $this->getVariableFromPost("createEmpty", "");
 
             if ($projectName != ""){
                 $projectImageEncoded = "";
@@ -607,11 +608,20 @@ class ControllerDefault extends ControllerParent{
                 echo("new project ID: $newProjectId<br />\n");
                 echo("<br />\n");
 
-                $templateProjectInfo = $this->modelProject->getTemplateProject();
-                $this->modelProject->copyNodesWithCategoriesFromToProject(
-                    $templateProjectInfo['internal_id'],
-                    $newProjectId
-                );
+                if (in_array(strtolower($projectCreateEmpty), array("t", "true", true)) == true){
+                    /*
+                     *  Create empty project means don't copy any nodes from template project
+                     */
+                }else{
+                    /*
+                     *  Find project which should be used as template and copy all schematic nodes from it to this new project
+                     */
+                    $templateProjectInfo = $this->modelProject->getTemplateProject();
+                    $this->modelProject->copyNodesWithCategoriesFromToProject(
+                        $templateProjectInfo['internal_id'],
+                        $newProjectId
+                    );
+                }
 
                 echo("<a href='?q=userProjectList'>Back to project list</a><br />\n");
 

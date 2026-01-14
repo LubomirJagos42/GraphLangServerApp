@@ -79,16 +79,17 @@ class ModelProject
         else if ($projectImage !== "") $queryStr .= " project_image = '$projectImage',";
         $queryStr .= " project_language = '$projectLanguage',";
         $queryStr .= " project_description = '$projectDescription',";
-        $queryStr .= " project_code_template = '$projectCodeTemplate'";
-        $queryStr .= " project_embedded_platform = '$projectEmbeddedPlatform'";
-        $queryStr .= " project_embedded_board = '$projectEmbeddedBoard'";
-        $queryStr .= " project_embedded_framework = '$projectEmbeddedFramework'";
+        $queryStr .= " project_code_template = '$projectCodeTemplate',";
+        if ($projectEmbeddedPlatform !== null) $queryStr .= " project_embedded_platform = '$projectEmbeddedPlatform',";
+        if ($projectEmbeddedBoard !== null) $queryStr .= " project_embedded_board = '$projectEmbeddedBoard',";
+        if ($projectEmbeddedBoard !== null) $queryStr .= " project_embedded_framework = '$projectEmbeddedFramework'";
         $queryStr .= " WHERE internal_id=$projectId AND project_owner=$userId;";
 
         try {
             $result = $this->db_conn->query($queryStr);
         }catch (Exception $e){
-            $outputArray["errorMsg"] = $this->db_conn->error;
+            $outputArray["errorMsg"] .= $this->db_conn->error;
+            $outputArray["errorMsg"] .= "<br/><br/>\nUsed SQL query:<br/>\n$queryStr";
             return $outputArray;
         }
 
@@ -665,8 +666,9 @@ class ModelProject
             $CMakeListsStr .= "# Require C++17 (adjust if you want C++20/23)\n";
             $CMakeListsStr .= "set(CMAKE_CXX_STANDARD 17)\n";
             $CMakeListsStr .= "\n";
-
-
+            $CMakeListsStr .= "# Export all function in code between extern \"C\" {}\n";
+            $CMakeListsStr .= "set(CMAKE_CXX_FLAGS \"\${CMAKE_CXX_FLAGS} -s LINKABLE=1\")\n";
+            $CMakeListsStr .= "\n";
             $CMakeListsStr .= "# Add executable from your main.cpp\n";
             $CMakeListsStr .= "add_executable(main main.cpp)\n";
             $CMakeListsStr .= "\n";
@@ -756,8 +758,7 @@ class ModelProject
             $compileCMakeFileContent .= "#because of caching some webassembly emscripten first remove buidl/Debug folder\n";
             $compileCMakeFileContent .= "rm -r build/Debug\n";
             $compileCMakeFileContent .= "emcmake cmake -D CMAKE_TOOLCHAIN_FILE=wasm-toolchain.cmake -D CMAKE_BUILD_TYPE=Debug -G \"Unix Makefiles\" -S . -B build/Debug\n";
-            $compileCMakeFileContent .= "cmake --build build/Debug\n";
-            $compileCMakeFileContent .= "\n";
+            $compileCMakeFileContent .= "cmake --build build/Debug 2> >(tee .compiler_error_output.txt)\n";
 
             $cmakeCompileScriptFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."compile_cmake.sh";
             file_put_contents($cmakeCompileScriptFilepath, $compileCMakeFileContent);
@@ -794,9 +795,9 @@ class ModelProject
             $compileOutputShellExecResult = shell_exec($compileCommand);
 
             $result["compileCommandOutput"] = json_encode(array(
-                "status" => str_ends_with($compileOutputShellExecResult, "0") ? 0 : 1,
+                "status" => str_ends_with($compileOutputShellExecResult, "0\n") ? 0 : 1,
                 "message" => $compileOutputShellExecResult,
-                "errorMsg" => "TODO: Need to be added error message if any during compilation!"
+                "errorMsg" => file_get_contents($compileOutputDir.DIRECTORY_SEPARATOR.".compiler_error_output.txt")
             ));
 
             #

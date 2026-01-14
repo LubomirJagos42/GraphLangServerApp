@@ -106,6 +106,10 @@
                     <td></td>
                     <td></td>
                 </tr>
+                <tr>
+                    <td>Create empty project:</td>
+                    <td><input name="createEmpty" type="checkbox" value="T"/></td>
+                </tr>
             </table>
             <br />
 
