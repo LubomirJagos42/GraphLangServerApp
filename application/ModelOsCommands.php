@@ -14,7 +14,7 @@ class ModelOsCommands{
         if ($this->OperatingSystem == "") $this->OperatingSystem = PHP_OS;
     }
 
-    function runCommand($runPath, $startDir){
+    function runCommand($runPath, $startDir, $env = null){
         $result = array("status" => 0, "errorMsg" => "", "message" => "");
         $pid = -1;
 
@@ -30,8 +30,9 @@ class ModelOsCommands{
             );
 
             //proc_open — Execute a command
-            //'start /b' runs command in the background
-            $prog = proc_open("start /b " . $runPath, $descriptorspec, $pipes, $startDir, NULL);
+            $prog = proc_open($runPath, $descriptorspec, $pipes, $startDir, $env);
+
+            file_put_contents('C:\temp\ccc.txt', "start /b " . $runPath."\n");
             if (is_resource($prog))
             {
                 //Get Parent process Id
@@ -84,6 +85,8 @@ class ModelOsCommands{
 
         $result["pid"] = $pid;
         $result["resource"] = $prog;
+        $result["isOsWindows"] = $this->isOsWindows();
+        $result["isOsLinux"] = $this->isOsLinux();
 
         return $result;
     }

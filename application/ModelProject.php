@@ -754,10 +754,16 @@ class ModelProject
             #
             #   Create compile shell file for Debug mode (this is for now, for debugging in gdb)
             #
+
             $compileCMakeFileContent = "";
+            $compileCMakeFileContent .= "emsdk activate latest\n";
+            $compileCMakeFileContent .= "source emsdk_env.sh\n";
+            $compileCMakeFileContent .= "\n";
             $compileCMakeFileContent .= "#because of caching some webassembly emscripten first remove buidl/Debug folder\n";
             $compileCMakeFileContent .= "rm -r build/Debug\n";
-            $compileCMakeFileContent .= "emcmake cmake -D CMAKE_TOOLCHAIN_FILE=wasm-toolchain.cmake -D CMAKE_BUILD_TYPE=Debug -G \"Unix Makefiles\" -S . -B build/Debug\n";
+            $compileCMakeFileContent .= "mkdir -p build/Debug\n";
+            $compileCMakeFileContent .= "\n";
+            $compileCMakeFileContent .= "(\$EMSDK_PYTHON \$EMSDK/upstream/emscripten/emcmake.py cmake -D CMAKE_BUILD_TYPE=Debug -G \"Unix Makefiles\" -S . -B build/Debug)\n";
             $compileCMakeFileContent .= "cmake --build build/Debug 2> >(tee .compiler_error_output.txt)\n";
 
             $cmakeCompileScriptFilepath = $compileOutputDir.DIRECTORY_SEPARATOR."compile_cmake.sh";
@@ -779,7 +785,10 @@ class ModelProject
             $compileOutputDir = str_replace('\\', '/', $compileOutputDir);  #even Windows is OK with this when / is used instead of
             $compileCommand = "";
             if ($this->modelOsCommands->isOsWindows()){
-                $compileCommand = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile_cmake.sh 2>&1; echo $?"';
+                #
+                #  bash -lic run in interactive login shell to source .bash_profile where variables in Win OS where emsdk and cmake are defined
+                #    
+                $compileCommand = 'bash -lic "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && ./compile_cmake.sh 2>&1; echo $?"';
             }else if($this->modelOsCommands->isOsLinux()){
                 $compileCommand = 'cd $(pwd)/'.$compileOutputDir.' && ./compile_cmake.sh 2>&1; echo $?';
             }
@@ -792,12 +801,19 @@ class ModelProject
 
             // Call bash script which calls cmake command
             //this output must be JSON: {"status": string, "message": string, "errorMessage": string}
-            $compileOutputShellExecResult = shell_exec($compileCommand);
+
+            //$compileOutputShellExecResult = shell_exec($compileCommand);
+            $compileOutputShellExecResult = array();
+            $shellResultCode = 0;
+            exec($compileCommand, $compileOutputShellExecResult, $shellResultCode);
+            $compileOutputShellExecResult = implode("\n", $compileOutputShellExecResult);
+
+            $compilerErrorOutputFile = $compileOutputDir.DIRECTORY_SEPARATOR.".compiler_error_output.txt";
 
             $result["compileCommandOutput"] = json_encode(array(
-                "status" => str_ends_with($compileOutputShellExecResult, "0\n") ? 0 : 1,
+                "status" => str_ends_with($compileOutputShellExecResult, "0\n") || str_ends_with($compileOutputShellExecResult, "0") ? 0 : 1,
                 "message" => $compileOutputShellExecResult,
-                "errorMsg" => file_get_contents($compileOutputDir.DIRECTORY_SEPARATOR.".compiler_error_output.txt")
+                "errorMsg" => file_exists($compilerErrorOutputFile) ? file_get_contents($compilerErrorOutputFile) : ""    //suppress error if file not exists
             ));
 
             #
@@ -857,7 +873,7 @@ class ModelProject
             $buildProjectCommandStr = "";
             if ($this->modelOsCommands->isOsWindows()){
                 //$buildProjectCommandStr = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && pio debug 2>&1; echo $?"';    //this redirect error output to file
-                $buildProjectCommandStr = 'bash -lc "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && (pio debug; echo $?) 2> >(tee .compiler_error_output.txt)"';
+                $buildProjectCommandStr = 'bash -lic "cd $(cygpath -u \'%cd%\')/'.$compileOutputDir.' && (pio debug; echo $?) 2> >(tee .compiler_error_output.txt)"';
             }else if($this->modelOsCommands->isOsLinux()){
                 $buildProjectCommandStr = 'cd $(pwd)/'.$compileOutputDir.' && pio debug 2>&1; echo $?';
             }
@@ -868,10 +884,12 @@ class ModelProject
             $projectBuildShellResult .= "\n";
             $projectBuildShellResult .= $buildProjectOutputShellExecResult;
 
+            $compilerErrorOutputFile = $compileOutputDir.DIRECTORY_SEPARATOR.".compiler_error_output.txt";
+
             $result["compileCommandOutput"] = json_encode(array(
-                "status" => str_ends_with($buildProjectOutputShellExecResult, "0\n") ? 0 : 1,   //result code is written as last line in output and there is newline symbol (\n) at the end
+                "status" => str_ends_with($buildProjectOutputShellExecResult, "0\n") || str_ends_with($buildProjectOutputShellExecResult, "0") ? 0 : 1,   //result code is written as last line in output and there is newline symbol (\n) at the end
                 "message" => $projectBuildShellResult,
-                "errorMsg" => file_get_contents($compileOutputDir.DIRECTORY_SEPARATOR.".compiler_error_output.txt"),
+                "errorMsg" => file_exists($compilerErrorOutputFile) ? file_get_contents($compilerErrorOutputFile) : "",    //suppress error if file not exists
                 "compileCommand" => $buildProjectCommandStr
             ));
 

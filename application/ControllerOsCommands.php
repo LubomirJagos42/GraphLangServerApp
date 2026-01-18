@@ -10,12 +10,13 @@ class ControllerOsCommands extends ControllerParent{
     private $modelOsCommands;
     private $modelLogin;
     private $modelDirectory;
+    private $modelProject;
 
     function __construct($db_conn){
         $this->modelOsCommands = new ModelOsCommands($db_conn);
         $this->modelLogin = new ModelLogin($db_conn);
-        $this->modelDirectory = new modelDirectory($db_conn);
-        $this->modelProject = new modelProject($db_conn);
+        $this->modelDirectory = new ModelDirectory($db_conn);
+        $this->modelProject = new ModelProject($db_conn);
     }
 
     function doRunPythonCppDebugServer(){
@@ -35,19 +36,28 @@ class ControllerOsCommands extends ControllerParent{
             "stdin" => ""
         );
         $osCommandToStartDebuggerLayer = "";
+        $env = null;
+
         if ($embeddedInfo["isEmbedded"] == false) {
             $result["debuggerLayerMode"] = "desktop";
-//            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py --logging'; #add argument --logging if need log if something is crashing in tmp/gdb_websocket.log
-            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py ';
+           $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py --logging'; #add argument --logging if need log if something is crashing in tmp/gdb_websocket.log
+            // $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py ';
         }else{
             $result["debuggerLayerMode"] = "embedded";
-//            $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py  --logging --embedded --projectDir '.$this->modelDirectory->getCurrentUserProjectTempDir($currentProject);
+            // $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py  --logging --embedded --projectDir '.$this->modelDirectory->getCurrentUserProjectTempDir($currentProject)." > C:\\temp\\debugger_embedded_log.txt 2>&1"; #add argument --logging if need log if something is crashing in tmp/gdb_websocket.log
             $osCommandToStartDebuggerLayer = 'python3 DebuggerCppBrowserInterface.py  --embedded --projectDir '.$this->modelDirectory->getCurrentUserProjectTempDir($currentProject);
         }
-        $processResult = $this->modelOsCommands->runCommand($osCommandToStartDebuggerLayer, $startDir);
 
-        //        sleep(5);
-        //        $this->modelOsCommands->killProcess($processResult['pid'], $processResult['resource']);
+        $processResult = array(
+            "status" => 0,
+            "pid" => 0,
+            "stdout" => "",
+            "stderr" => "",
+            "message" => "",
+            "errorMsg" => ""
+        );
+
+        $processResult = $this->modelOsCommands->runCommand($osCommandToStartDebuggerLayer, $startDir, $env);
 
         $result["processResult"] = array();
         $result["processResult"]["startDir"] = $startDir;
@@ -56,6 +66,9 @@ class ControllerOsCommands extends ControllerParent{
         $result["processResult"]["status"] = $processResult["status"];
         if (array_key_exists("stdout", $processResult)) {$result["processResult"]["stdout"] = $processResult["stdout"];}
         if (array_key_exists("stderr", $processResult)) {$result["processResult"]["stderr"] = $processResult["stderr"];}
+
+        $result["processResult"]["message"] = $processResult["message"];
+        $result["processResult"]["errorMsg"] = $processResult["errorMsg"];
 
         //        var_dump($result);
         echo(json_encode($result));
