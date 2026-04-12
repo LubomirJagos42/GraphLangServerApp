@@ -152,19 +152,78 @@ class ModelLogin{
         return $username;
     }
 
+    /**
+     * @description This method is used to send email, it is used in registration process to send confirmation email to user.
+     * @param {string} $receiver - email of receiver
+     * @param {string} $subject - subject of email
+     * @param {string} $body - body of email
+     * @return array - {"status": 1 if success, -1 if error, "error": error message if error}
+     */
     function sendMail($receiver, $subject, $body){
-        //mail($receiver, $subject, $body); //this method will be used, but now commented to disable it
-        echo("MOCKED sendMail():<br/>\n");
-        echo("receiver: $receiver<br/>\n");
-        echo("subject: $subject<br/>\n");
-        echo("body: $body<br/>\n");
+        $output = array(
+            "status" => 0,
+            "error" => ""
+        );    
+
+        try{
+            $result = @mail($receiver, $subject, $body); //this method will be used, but now commented to disable it
+            if ($result == false){
+                $phpError = error_get_last();
+                
+                $output['status'] = -1;
+                $output['error'] = "Failed to send email!<br/>\n".$phpError['message'];
+            }else{
+                $output['status'] = 1;
+            }
+        }catch (Exception $e){
+            $output['status'] = -1;
+            $output['error'] = $e->getMessage();
+        }
+
+        return $output;
     }
 
+    /**
+     * @description This method is used to add new user registration, it is called when user submit registration form.
+     * It adds user to registration_waiting_users table and send email with confirmation link to user email.
+     * @param {string} $username - username from registration form
+     * @param {string} $password - password from registration form
+     * @param {string} $email - email from registration form
+     * @param {string} $token - token for email confirmation, it is generated on frontend using MD5 of email and password
+     * @return array - {"status": 1 if success, -1 if error, "error": error message if error}
+     */
     function addNewUserRegistration($username, $password, $email, $token){
         $output = array(
             "status" => 0,
             "error" => ""
         );
+        $queryStr = "";
+
+        /*
+         *  Check that user email is not used in active users
+         */
+        $queryStr = "SELECT internal_id FROM active_users WHERE email='$email'";
+        $result = $this->db_conn->query($queryStr);
+        if ($result->num_rows > 0){
+            $output['status'] = -1;
+            $output['error'] = "This email is already used, this is already registered user!.";
+            return $output;
+        }
+
+        /*
+         *  Check that user mail is not used or if yes if it was used less than 24hours ago
+         */
+        $queryStr = "SELECT TIMESTAMPDIFF(HOUR, `last_update`, NOW()) AS hours_since_update FROM registration_waiting_users WHERE email='$email'";
+        $result = $this->db_conn->query($queryStr);
+        if ($result->num_rows > 0){
+            $row = $result->fetch_row();
+            $hoursSinceUpdate = $row[0];
+            if ($hoursSinceUpdate < 24){
+                $output['status'] = -1;
+                $output['error'] = "This email is already used for registration, please check your email and click on confirmation link or wait till 24 hours to try again.";
+                return $output;
+            }
+        }
 
         $queryStr = "INSERT INTO registration_waiting_users (name, email, password, token, last_update) VALUES ('$username', '$email', '$password', '$token', NOW());\n";
         $result = $this->db_conn->query($queryStr);
@@ -178,6 +237,13 @@ class ModelLogin{
         return $output;
     }
 
+    /**
+     * @description This method is used to confirm user registration, it is called when user click on link in email.
+     * It moves user from registration_waiting_users table to active_users table and deletes
+     * it from registration_waiting_users table.
+     * @param {string} $token - token from email link, it is used to find user in registration_waiting_users table.
+     * @return array - {"status": 1 if success, -1 if error, "error": error message if error}
+     */
     function confirmRegistration($token){
         $output = array(
             "status" => 0,

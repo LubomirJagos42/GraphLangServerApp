@@ -533,7 +533,7 @@ class ControllerDefault extends ControllerParent{
         $_SESSION['password'] = "";
         $_SESSION['token'] = "";
 
-        echo("user logout<br /><br />\n");
+        echo("USER LOGOUT<br /><br />\n");
         echo("<a href='?'>Home</a>\n");
     }
 
@@ -1374,20 +1374,31 @@ class ControllerDefault extends ControllerParent{
         $passwordConfirmation = $this->getVariableFromPost("passwordConfirmation", "");
         $email = $this->getVariableFromPost("email", "");
 
+        $isDevelopmentServer = in_array($_SERVER['SERVER_ADDR'] ?? '', ['127.0.0.1', '::1']);
+
         //this is used when user confirm registration after mail was send with token
         $token = $this->getVariableFromGet("token", "");
 
         if ($token != "") {
             /*
-             *  Registration confirmation
+             *  Registration confirmation:
+             *      - user click on link in email with token
+             *      - check that user is in pending users table
+             *      - if yes move user from pending users table to users table and remove it from pending users table
              */
             $result = $this->modelLogin->confirmRegistration($token);
 
-            echo("Registration confirmation output<br />");
             echo("<br />\n");
-            var_dump($result);
-            echo("<br />\n");
+            if ($result["status"] == 1){
+                echo("Registration confirmed successfully, you can login now!<br/>\n");
+            }else if ($result["status"] == -1){
+                echo("Registration confirmation FAILED with error: ".$result["error"]."<br/>\n");
+            }else{
+                echo("Unexpected behavior during registration confirmation, please contact support.<br/>\n");
+            }
+            echo("<br/>\n");
             echo("<a href='?q=home'>Back to home</a>\n");
+
         }else if ($username == "" || $password == "" || $email == ""){
             /*
              *  Default registration form - POST data weren't sent then it means user just want to register new one, therefore display form to do it.
@@ -1403,16 +1414,41 @@ class ControllerDefault extends ControllerParent{
                 $registrationLink = $_SERVER['REQUEST_URI']."&token=$token";
 
                 $receiver = $email;
-                $subject = "GraphLang, confirm registration";
-                $body = "Please confirm your registration on following <br />";
-                $body .= "<a href='".$registrationLink."'>---> link <---</a><br />";
+                $subject = "GraphLang confirm registration<br/><br/>";
+                $body = "Please confirm your registration:<br />";
+                $body .= "<a href='".$registrationLink."'>Confirm registration link, click here</a><br />";
                 $body .= "<br />";
                 $body .= "Link will be active for 24 hours.<br />";
                 $body .= "<br />";
 
-                $this->modelLogin->sendMail($receiver, $subject, $body);
+                $resultSendingMail = $this->modelLogin->sendMail($receiver, $subject, $body);
+                if ($resultSendingMail["status"] == 1){
+                    echo("Registration successful, please check your email and confirm registration by clicking on link in email!<br/>\n");
+                    echo("<br/>\n");
+                    
+                    //TODO: Remove this for PRODUCTION deployment, this is here for localhost testing.
+                    if ($isDevelopmentServer) {
+                        echo("Verification link: <a href='".$registrationLink."'>Click here to confirm registration</a><br/>\n");
+                        echo("<br/>\n");
+                    }
+
+                }else if ($resultSendingMail["status"] == -1){
+                    echo("ERROR DURING REGISTRATION\n");
+                    echo("<br />");
+                    echo($resultSendingMail["error"]);
+
+                    if ($isDevelopmentServer && str_contains($resultSendingMail["error"], "mail()")){
+                        echo("<br /><br />\n");
+                        echo("It seems that mail function is disabled on server, therefore registration cannot be completed, please contact support.<br/>\n");
+                        echo("<br/>\n");
+                        echo("Verification link: <a href='".$registrationLink."'>Click here to confirm registration</a><br/>\n");
+                        echo("<br/>\n");
+                    }
+                }
+                
                 echo("<br />\n");
                 echo("<a href='?q=home'>Back to home</a>\n");
+
             }else{
                 echo("ERROR DURING REGISTRATION\n");
                 echo("<br />");
@@ -1420,6 +1456,8 @@ class ControllerDefault extends ControllerParent{
                 echo($resultNewRegistration["error"]);
                 echo("<br />");
                 echo("<br />");
+                echo("<br />\n");
+                echo("<a href='?q=home'>Back to home</a>\n");
             }
 
         }
