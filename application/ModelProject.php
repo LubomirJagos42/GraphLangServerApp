@@ -837,7 +837,7 @@ class ModelProject
         #
         if (!$projectOutputDir) {
             $result = array("status" => 0, "errorMsg" => "Unable to create user project temp dir", "compileCommandOutput" => "");
-            echo($result);
+            var_dump($result);
             return;
         }
 
@@ -924,6 +924,22 @@ class ModelProject
         $allEmbeddedBoardInfoJSON = shell_exec('pio platform frameworks --json-output');
 
         return $allEmbeddedBoardInfoJSON;
+    }
+
+    /**
+     *  Get project target type
+     *  @return {string} "desktop" | "embedded" | "webassembly"
+     */
+    function getProjectTargetType($projectId){
+        $embeddedInfo = $this->getProjectEmbeddedInfo($projectId);
+
+        if ($embeddedInfo["target"] == "desktop"){
+            return "desktop";
+        }else if ($embeddedInfo["isEmbedded"] == true){
+            return "embedded";
+        }else if ($embeddedInfo["target"] == "webassembly"){
+            return "webassembly";
+        }
     }
 
 }

@@ -1499,8 +1499,16 @@ class ControllerDefault extends ControllerParent{
 
         //first compile project, it requires that code must be sent over POST to be compiled
         $projectCompilationResult = $this->doCompileProject(false);
+        $projectTargetType = "desktop";
 
+        //project was compiled and there is user check if user is logged in doCompileProject()
         if ($projectCompilationResult["status"] == 1){
+            $currentProject = $this->modelLogin->getCurrentUserProjectId();
+            $embeddedInfo = $this->modelProject->getProjectEmbeddedInfo($currentProject);
+            $projectTargetType = $this->modelProject->getProjectTargetType($this->modelLogin->getCurrentUserProjectId());
+        }
+
+        if ($projectCompilationResult["status"] == 1 && $projectTargetType == "desktop"){
             /*
              *  compilation was OK, run program and
              */
@@ -1565,10 +1573,18 @@ class ControllerDefault extends ControllerParent{
                 $result["errorMsg"] = "There was problem to execute compiled program. PID: ".$currentProgramPid;
                 $result["message"] = "FILE: ".$currentProgramPidFile.", PID: ".$currentProgramPid;
             }
-        }else{
+        }
+        else if ($projectCompilationResult["status"] == 1 && $projectTargetType == "desktop"){
+            //COMPILATION FAILED
+            $result["errorMsg"] = "Run project is not supported for 'embedded' target!";
+            $result["message"] = $projectCompilationResult["message"];
+            $result["projectTargetType"] = $projectTargetType;
+        }
+        else{
             //COMPILATION FAILED
             $result["errorMsg"] = "There was problem to compile program.";
             $result["message"] = $projectCompilationResult["message"];
+            $result["projectTargetType"] = $projectTargetType;
         }
 
         echo(json_encode($result));
