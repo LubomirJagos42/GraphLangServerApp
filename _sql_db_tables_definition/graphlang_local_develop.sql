@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 13, 2026 at 03:32 AM
+-- Generation Time: Oct 17, 2026 at 01:10 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.24
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -41,7 +41,7 @@ CREATE TABLE `active_users` (
 --
 
 INSERT INTO `active_users` (`internal_id`, `name`, `email`, `password`, `last_logged`, `token`) VALUES
-(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2026-01-13 02:58:17', '18cfd8718a08b0eee1b1b53c371b3cc8'),
+(1, 'LubomirJagos', 'lubomir.jagos@hidden-mail.com', '6a284155906c26cbca20c53376bc63ac', '2026-10-17 06:19:31', 'd3e790909d3be5980db6e9a4a165a62b'),
 (2, 'GraphLang_Core', 'graphlang@core.com', '6a284155906c26cbca20c53376bc63ac', '2025-09-15 20:24:12', '11f4345cac5b3bc45029c32ed41811c5'),
 (4, 'John Doe', 'john.doe.nonexisting.guy@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
 (5, 'Lucy Skyler', 'lucy.skyler.nonexsiting@gmail.com', '482c811da5d5b4bc6d497ffa98491e38', NULL, ''),
@@ -156,8 +156,8 @@ CREATE TABLE `storage_schematic_blocks` (
   `node_display_name` varchar(1000) NOT NULL,
   `node_class_name` varchar(1000) NOT NULL,
   `node_class_parent` varchar(1000) DEFAULT NULL,
-  `node_content_code` blob NOT NULL,
-  `node_content_code_temp` blob NOT NULL,
+  `node_content_code` blob DEFAULT NULL,
+  `node_content_code_temp` blob DEFAULT NULL,
   `node_language` varchar(2000) DEFAULT NULL,
   `node_isHidden` tinyint(1) NOT NULL DEFAULT 0,
   `node_directory` varchar(2000) DEFAULT NULL,
@@ -182,7 +182,7 @@ CREATE TABLE `user_projects` (
   `project_description` text DEFAULT NULL,
   `project_code_template` varchar(1000) NOT NULL,
   `project_language` varchar(100) NOT NULL,
-  `project_isTemplate` tinyint(1) NOT NULL,
+  `project_isTemplate` tinyint(1) NOT NULL DEFAULT 0,
   `project_embedded_platform` varchar(100) NOT NULL,
   `project_embedded_board` varchar(200) NOT NULL,
   `project_embedded_framework` varchar(200) NOT NULL

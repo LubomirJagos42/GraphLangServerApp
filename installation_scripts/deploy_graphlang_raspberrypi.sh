@@ -23,6 +23,7 @@ SSH_REMOTE_GRAPHLANG_FOLDER_USER_PROJECTS_OUTPUT=$SSH_REMOTE_GRAPHLANG_FOLDER/_t
 #########################################################################################################################################
 DEPLOY_DB=true
 DO_COPY_FILES=true
+DO_INSTALL_SW=true
 
 # parse arguments
 for arg in "$@"; do
@@ -35,11 +36,16 @@ for arg in "$@"; do
       DO_COPY_FILES=false
       shift # remove argument
       ;;
+    --no-sw-install)
+      DO_INSTALL_SW=false
+      shift # remove argument
+      ;;
     --help | -h)
 	  echo
 	  echo "Available arguments:"
 	  echo -e "\t--no-db-deploy ...skip deploy of SQL file to DB\n"
 	  echo -e "\t--no-file-copy ...skip copying files to target (no .php, .html copied to target)"
+	  echo -e "\t--no-sw-install ...skip SW installation"
       exit 0
       ;;
   esac
@@ -86,7 +92,11 @@ EOF
 # TODO: Check if working since file is quite long, this should run whole .sh file on remote target
 #
 echo "--> Checking SW if installed on raspi"
-cat install_software.sh | sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP
+if [ "$DO_INSTALL_SW" = true ]; then
+  cat install_software.sh | sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP
+else
+  echo "----> skipped sw check"
+fi
 
 #########################################################################################################################################
 # Copying sql db file to target and deploy it
@@ -111,6 +121,7 @@ fi
 # Copying graphlang files to server
 #########################################################################################################################################
 
+<<comment
 if [ "$DO_COPY_FILES" = true ]; then
 	#scp -v ...show progress of Copying
 	#    -r ...copy directory recursively
@@ -122,7 +133,40 @@ if [ "$DO_COPY_FILES" = true ]; then
 else
   echo "--> Skipping copying files to server (--no-file-copy used)."
 fi
+comment
 
+if [ "$DO_COPY_FILES" = true ]; then
+	echo "--> Copying GraphLang files to remote"
+	if command -v rsync >/dev/null 2>&1; then
+
+
+# Ensure the remote directory exists and is owned by the deployment user
+sshpass -p "$SSH_PASSWORD" ssh "$SSH_USER@$SSH_DEVICE_IP" "sudo mkdir -p $SSH_REMOTE_GRAPHLANG_FOLDER && sudo chown -R $SSH_USER:$SSH_USER $SSH_REMOTE_GRAPHLANG_FOLDER"
+
+		# trailing slash on source = copy contents straight into the target folder
+		sshpass -p "$SSH_PASSWORD" rsync -av --no-perms --no-owner --no-group --info=progress2 --stats \
+                        --exclude '.git' \
+                        --exclude '.pio' \
+                        --exclude '_temp' \
+                        --exclude 'build' \
+                        --exclude 'node_modules' \
+    			-e 'ssh -o StrictHostKeyChecking=accept-new' \
+			../../GraphLangServerApp/ "$SSH_USER@$SSH_DEVICE_IP:$SSH_REMOTE_GRAPHLANG_FOLDER/"
+	else
+		echo "    rsync not found, falling back to tar over ssh"
+		tar -C ../.. -cf - GraphLangServerApp \
+			| sshpass -p "$SSH_PASSWORD" ssh "$SSH_USER@$SSH_DEVICE_IP" \
+			  "tar -xf - --strip-components=1 -C $SSH_REMOTE_GRAPHLANG_FOLDER"
+	fi
+
+	if [ $? -ne 0 ]; then
+		#echo "File copy failed. Exiting..."
+		#exit 1
+                echo "File copy failed. still continue..."
+	fi
+else
+	echo "--> Skipping copying files to server (--no-file-copy used)."
+fi
 
 #########################################################################################################################################
 # Set folder for user projects for compilation to be accesible to write
