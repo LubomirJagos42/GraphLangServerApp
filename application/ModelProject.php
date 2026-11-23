@@ -316,6 +316,61 @@ class ModelProject
         echo("<br /><br />\n");
     }
 
+    /**
+     * @param string $codeStr - python source code
+     * @param string $projectOutputDir - project temp dir (relative to app root), created by ModelDirectory::createCurrentUserProjectTempDir()
+     * @param string $outputFileName - python file name, only file name is used (no path), default main.py
+     * @return array - status (1 = files written), message, errorMsg, outputDir, outputFileAbsolutePath, initFileAbsolutePath, compileCommandOutput
+     *
+     * @description Python counterpart of compileProjectCpp(). Python is interpreted, so there is no cmake/compilation, this only
+     * writes empty __init__.py and main.py with generated code into project folder. compileCommandOutput has same JSON
+     * format as for C++ ({status, message, errorMsg}) to be handled same way in browser.
+     */
+    function createProjectPython($codeStr, $projectOutputDir, $outputFileName = "main.py"){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        if (!$projectOutputDir) {
+            $result["errorMsg"] .= "Unable to create user project temp dir\n";
+            return $result;
+        }
+        @mkdir($projectOutputDir);
+
+        #   only plain python file name is accepted, path parts are removed to not write outside project folder
+        $outputFileName = basename(str_replace('\\', '/', (string)$outputFileName));
+        if (!preg_match('/^[A-Za-z0-9_\-]+\.py$/', $outputFileName)) $outputFileName = "main.py";
+
+        if (strlen($codeStr) == 0){
+            $result["message"] .= "No source code, string parameter with source code is empty!\n";
+            return $result;
+        }
+
+        $initFilePath = $projectOutputDir.DIRECTORY_SEPARATOR."__init__.py";
+        $mainFilePath = $projectOutputDir.DIRECTORY_SEPARATOR.$outputFileName;
+
+        $initWritten = file_put_contents($initFilePath, "");
+        $mainWritten = file_put_contents($mainFilePath, $codeStr);
+
+        $result["outputDir"] = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$projectOutputDir;
+        $result["outputFileAbsolutePath"] = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$mainFilePath;
+        $result["initFileAbsolutePath"] = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$initFilePath;
+
+        if ($initWritten === false || $mainWritten === false){
+            $result["errorMsg"] .= "Unable to write python files into project folder\n";
+            $result["compileCommandOutput"] = json_encode(array("status" => 1, "message" => "", "errorMsg" => "Unable to write python files"));
+            return $result;
+        }
+
+        $result["compileCommandOutput"] = json_encode(array(
+            "status" => 0,
+            "message" => "Python project created (no compilation needed): __init__.py, $outputFileName",
+            "errorMsg" => ""
+        ));
+        $result["status"] = 1;
+        $result["message"] .= "Python project files generated.\n";
+
+        return $result;
+    }
+
     function compileProjectCpp($codeStr, $projectOutputDir, $outputFileName, $librariesList, $userId, $projectId){
         $result = array("status" => 0, "errorMsg" => "", "message" => "");
 
@@ -422,8 +477,9 @@ class ModelProject
             $CMakeListsStr .= "# For all compiler commands, redirect output to a file\n";
             if ($this->modelOsCommands->isOsWindows()){
                 $CMakeListsStr .= 'set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E env DIAG_DIR=${DIAG_DIR} bash ${CMAKE_CURRENT_SOURCE_DIR}/capture_diag.sh")'."\n";
-            }elseif ($this->modelOsCommands->isOsWindows()){
-                $CMakeListsStr .= 'set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E env DIAG_DIR=${DIAG_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/capture_diag.sh")'."\n";
+            }elseif ($this->modelOsCommands->isOsLinux()){
+                //capture_diag.sh is written without exec permission, so run it through bash
+                $CMakeListsStr .= 'set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E env DIAG_DIR=${DIAG_DIR} bash ${CMAKE_CURRENT_SOURCE_DIR}/capture_diag.sh")'."\n";
             }
             $CMakeListsStr .= "\n";
 

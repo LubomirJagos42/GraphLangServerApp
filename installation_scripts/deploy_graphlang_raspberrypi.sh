@@ -173,6 +173,10 @@ fi
 #########################################################################################################################################
 
 echo "--> Set user projects output dir to 777 to be able for php write into it"
-sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP "sudo chmod -R 777 $SSH_REMOTE_GRAPHLANG_FOLDER_USER_PROJECTS_OUTPUT"
+sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP "sudo mkdir -p $SSH_REMOTE_GRAPHLANG_FOLDER_USER_PROJECTS_OUTPUT && sudo chmod -R 777 $SSH_REMOTE_GRAPHLANG_FOLDER_USER_PROJECTS_OUTPUT"
+
+# debugger layers (python_tools/*.py) are started by apache (www-data) and write logs into python_tools/tmp
+echo "--> Set python_tools/tmp dirs to 777 to be able for debugger layers started from php write logs into it"
+sshpass -p $SSH_PASSWORD ssh $SSH_USER@$SSH_DEVICE_IP "sudo find $SSH_REMOTE_GRAPHLANG_FOLDER -type d -path '*/python_tools/tmp' -exec chmod -R 777 {} +"
 
 echo "--> Installation finished"

@@ -88,6 +88,9 @@ include_once("application/ControllerOsCommands.php");
 	}else if($q == "compileProject"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doCompileProject();
+	}else if($q == "compileProjectPython"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controller->doCompileProjectPython();
 	}else if($q == "categoryOperation"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doCategoryOperation();
@@ -100,6 +103,9 @@ include_once("application/ControllerOsCommands.php");
 	}else if ($q == "runPythonCppDebugServer"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controllerOsCommands->doRunPythonCppDebugServer();
+	}else if ($q == "runPythonDebugServer"){
+		$GENERATE_SCRIPT_EXECUTION_TIME = false;
+		$controllerOsCommands->doRunPythonDebugServer();
 	}else if ($q == "registerUserViaEmail"){
 		$GENERATE_SCRIPT_EXECUTION_TIME = false;
 		$controller->doRegisterUserViaEmail();

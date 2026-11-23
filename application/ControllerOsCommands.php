@@ -74,5 +74,36 @@ class ControllerOsCommands extends ControllerParent{
         echo(json_encode($result));
     }
 
+    /**
+     * Start python debugger layer python_tools/DebuggerPythonInterface.py (websocket port 8889), python version of
+     * doRunPythonCppDebugServer(). Layer then runs generated main.py under bdb debugger controlled from browser
+     * (GraphLang.Debugger.Python in DebuggerPython.js).
+     */
+    function doRunPythonDebugServer(){
+        $result = array("status" => 0, "errorMsg" => "", "warningMsg" => "", "message" => "", "debuggerLayerMode" => "python");
+
+        $currentProject = $this->modelLogin->getCurrentUserProjectId();
+        $ideVersion = $this->modelProject->getProjectVersion($currentProject);
+
+        $startDir = dirname(__FILE__, 2).DIRECTORY_SEPARATOR.$this->modelDirectory->getIdeHtmlIncludeDirPrefix($ideVersion).DIRECTORY_SEPARATOR."python_tools";
+        $startDir = str_replace('\\', '/', $startDir);
+
+        #add argument --logging if need log if something is crashing in tmp/python_debugger_websocket.log
+        $osCommandToStartDebuggerLayer = 'python3 DebuggerPythonInterface.py --logging';
+
+        $processResult = $this->modelOsCommands->runCommand($osCommandToStartDebuggerLayer, $startDir, null);
+
+        $result["processResult"] = array(
+            "startDir" => $startDir,
+            "osCommand" => $osCommandToStartDebuggerLayer,
+            "pid" => array_key_exists("pid", $processResult) ? $processResult["pid"] : -1,
+            "status" => $processResult["status"],
+            "message" => $processResult["message"],
+            "errorMsg" => $processResult["errorMsg"]
+        );
+
+        echo(json_encode($result));
+    }
+
 }
 ?>

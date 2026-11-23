@@ -1192,6 +1192,37 @@ class ControllerDefault extends ControllerParent{
         return $result;
     }
 
+    /**
+     * @description Python version of doCompileProject(). Python is interpreted so there is no compilation, generated code is written
+     * into project temp folder (same folder as for C++) as main.py together with empty __init__.py.
+     * Expected POST params: nodeCodeContent (python code as hex string, same encoding as for C++), outputFileName (optional, default main.py).
+     */
+    function doCompileProjectPython($printResultUsingEcho = true){
+        $result = array("status" => 0, "errorMsg" => "", "message" => "");
+
+        $loginInfo = $this->getLoginInfo();
+        if ($loginInfo["isLogged"] == 1) {
+            $currentUser = $this->modelLogin->getCurrentUserId();
+            $currentProject = $this->modelLogin->getCurrentUserProjectId();
+
+            $nodeCodeContent = $this->getVariableFromPost("nodeCodeContent", "");
+            $codeStr = @hex2bin($nodeCodeContent);
+            if ($codeStr === false) $codeStr = "";
+            $projectOutputDir = $this->modelDirectory->createCurrentUserProjectTempDir($currentUser, $currentProject);
+            $outputFileName = $this->getVariableFromPost("outputFileName", "main.py");
+
+            $result = $this->modelProject->createProjectPython($codeStr, $projectOutputDir, $outputFileName);
+        }else{
+            $result["errorMsg"] .= "User not logged!\n";
+        }
+
+        if ($printResultUsingEcho == true){
+            echo(json_encode($result));
+        }
+
+        return $result;
+    }
+
     /*
      *  TODO this function is in implementation progress
      *      14th September

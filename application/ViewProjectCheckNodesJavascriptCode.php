@@ -28,6 +28,7 @@
     </script>
 
 
+    <script src="<?php echo $htmlIncludeDirPrefix; ?>/gui/AI_Router_1.js"></script>
     <script src="<?php echo $htmlIncludeDirPrefix; ?>/gui/HoverConnection.js"></script>
     <script src="<?php echo $htmlIncludeDirPrefix; ?>/gui/MultilineInplaceEditor.js"></script>
     <script src="<?php echo $htmlIncludeDirPrefix; ?>/gui/SelectOptionInplaceEditor.js"></script>
