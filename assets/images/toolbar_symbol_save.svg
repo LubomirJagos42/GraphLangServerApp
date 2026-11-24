@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#000" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
+  <!-- floppy disk outline: save symbol to local file -->
+  <path d="M6 5h17l4 4v18H6z"/>
+  <rect x="10" y="5" width="11" height="7"/>
+  <line x1="18" y1="7" x2="18" y2="10"/>
+  <rect x="9" y="17" width="14" height="10"/>
+  <line x1="12" y1="21" x2="20" y2="21"/>
+  <line x1="12" y1="24" x2="20" y2="24"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#000" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
+  <!-- cloud with up arrow: upload symbol to server -->
+  <path d="M10 24H8.5a5.5 5.5 0 0 1-0.6-10.97A7.5 7.5 0 0 1 22.4 11a5.5 5.5 0 0 1 1.1 13H22"/>
+  <line x1="16" y1="28" x2="16" y2="16"/>
+  <polyline points="11.5,20.5 16,16 20.5,20.5"/>
+</svg>
